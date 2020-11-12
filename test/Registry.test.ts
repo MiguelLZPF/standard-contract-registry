@@ -1,13 +1,9 @@
-import { hardhatArguments, ethers } from "hardhat";
+import { BigNumber, Contract, Wallet, Event, ContractFactory } from "ethers";
+import { ethers, hardhatArguments } from "hardhat";
 
 import * as fs from "async-file";
-import { expect } from "chai";
-import { Wallet, Contract, BigNumber, Event, ContractFactory } from "ethers";
-import { formatBytes32String } from "ethers/lib/utils";
 import {
   createWallet,
-  deploy,
-  deployNinitRegistry,
   GAS_OPT,
   getEvents,
   logObject,
@@ -16,8 +12,8 @@ import {
   toHexVersion,
   TransactionResponse,
 } from "../scripts/Utils";
-import * as Manager from "../artifacts/contracts/Manager.sol/Manager.json";
-import { ContractRecord } from "../models/Registry";
+import { deploy, deployNinitRegistry } from "../scripts/Deployer";
+import { expect } from "chai";
 
 describe("Registry", async function () {
   //this.timeout
@@ -35,12 +31,15 @@ describe("Registry", async function () {
   let admin: Wallet | undefined;
   let me: Wallet | undefined;
   // Specific variables
+  // -- Contract Factories
+  let registryFact: ContractFactory;
+  let typeOneFact: ContractFactory;
+  let typeTwoFact: ContractFactory;
   // -- Contracts
   let proxyAdmin: Contract;
-  let registry: Contract; //registryProxy: Contract;
-  let manager: Contract;
-  // -- Records
-  let managerRecord: ContractRecord;
+  let registry: Contract;
+  let typeOne: Contract;
+  let typeTwo: Contract;
 
   this.beforeAll(async () => {
     const accounts = await ethers.getSigners();
@@ -91,6 +90,8 @@ describe("Registry", async function () {
       //regUpgrader = wallets[0];
       admin = wallets[0];
       me = wallets[1];
+      registryFact = await ethers.getContractFactory("ContractRegistry");
+      typeOne = await ethers.getContractFactory("TypeOne", me);
     } catch (error) {
       console.error(error);
     }
@@ -100,7 +101,7 @@ describe("Registry", async function () {
     console.log("\n ==> Deploying Proxy Admin contract...\n");
     admin = admin!;
 
-    proxyAdmin = (await deploy("ProxyAdmin", admin))!;
+    proxyAdmin = (await deploy("ProxyAdmin", { signer: admin }))!;
 
     console.log(`Proxy Admin successfully deployed:
       - Proxy Admin address: ${proxyAdmin.address}
@@ -116,7 +117,10 @@ describe("Registry", async function () {
     console.log("\n ==> Deploying registry contract...\n");
     admin = admin!;
 
-    registry = (await deployNinitRegistry(admin, proxyAdmin.address))!;
+    registry = (await deployNinitRegistry(
+      { signer: admin },
+      proxyAdmin.address
+    ))!;
 
     console.log(`Registry successfully deployed:
       - Registry logic address: ${await proxyAdmin.callStatic.getProxyImplementation(
@@ -160,6 +164,7 @@ describe("Registry", async function () {
     );
   });
 
+  // TODO: Adapt code to generic types
   it("Should set Lan Manager project types", async () => {
     console.log("\n ==> Setting Lan Manager contract Types and Versions... \n");
     const version = toHexVersion("0.1");
@@ -227,10 +232,9 @@ describe("Registry", async function () {
     me = me!;
     // to call contract from my account
     const registryMe = registry.connect(me);
-    const data = new ContractFactory(
-      Manager.abi,
-      Manager.bytecode,
-      me
+    
+    const data = (
+      await ethers.getContractFactory("Manager", me)
     ).interface.encodeFunctionData("initialize");
     const receipt = await ((await registryMe.deployContract(
       Manager.bytecode,
@@ -330,7 +334,7 @@ describe("Registry", async function () {
       - Logic: ${upgradedEvent.args?.newLogic}
       - Owner: ${upgradedEvent.args?.owner}`);
 
-      //console.log(upgradedEvent);
+    //console.log(upgradedEvent);
 
     /* manager = new Contract(deployEvent.args?.proxy, Manager.abi, me);
     managerRecord = await registryMe.callStatic.getContractRecord(
