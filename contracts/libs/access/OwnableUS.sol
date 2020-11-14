@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.6.0 <0.8.0;
 
-import "../GSN/ContextUS.sol";
+import "../GNS/ContextUS.sol";
 import "../Initializable.sol";
 /**
  * @dev Contract module which provides a basic access control mechanism, where

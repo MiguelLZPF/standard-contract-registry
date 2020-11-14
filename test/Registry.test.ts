@@ -32,11 +32,14 @@ describe("Registry", async function () {
   let registryFact: ContractFactory;
   let typeOneFact: ContractFactory;
   let typeTwoFact: ContractFactory;
+  let typeThreeFact: ContractFactory;
   // -- Contracts
   let proxyAdmin: Contract;
   let registry: Contract;
+  let registryMe: Contract;
   let typeOne: Contract;
   let typeTwo: Contract;
+  let typeThree: Contract;
 
   this.beforeAll(async () => {
     const accounts = await ethers.getSigners();
@@ -119,6 +122,7 @@ describe("Registry", async function () {
       { signer: admin },
       proxyAdmin.address
     ))!;
+    registryMe = registry.connect(me!);
 
     console.log(`Registry successfully deployed:
       - Registry logic address: ${await proxyAdmin.callStatic.getProxyImplementation(
@@ -163,23 +167,25 @@ describe("Registry", async function () {
   });
 
   // TODO: Adapt code to generic types
-  it("Should set Lan Manager project types", async () => {
-    console.log("\n ==> Setting Lan Manager contract Types and Versions... \n");
+  it("Should set example type contracts project types", async () => {
+    console.log(
+      "\n ==> Setting example type contracts Types and Versions... \n"
+    );
     const version = toHexVersion("0.1");
 
     const receipts = await Promise.all([
       ((await registry.setType(
-        "Manager", // should change to lower case
+        "type-one", // should change to lower case
         await version,
         GAS_OPT
       )) as TransactionResponse).wait(),
       ((await registry.setType(
-        "Network", // should change to lower case
+        "type-two", // should change to lower case
         await version,
         GAS_OPT
       )) as TransactionResponse).wait(),
       ((await registry.setType(
-        "Host", // should change to lower case
+        "type-three", // should change to lower case
         await version,
         GAS_OPT
       )) as TransactionResponse).wait(),
@@ -189,7 +195,7 @@ describe("Registry", async function () {
       getEvents(
         registry,
         "NewType",
-        [null, null], //["manager", await version],
+        [null, null],
         true,
         receipts[0].blockNumber,
         receipts[0].blockNumber
@@ -197,7 +203,7 @@ describe("Registry", async function () {
       getEvents(
         registry,
         "NewType",
-        [null, null], //["manager", await version],
+        [null, null],
         true,
         receipts[1].blockNumber,
         receipts[1].blockNumber
@@ -205,40 +211,36 @@ describe("Registry", async function () {
       getEvents(
         registry,
         "NewType",
-        [null, null], //["manager", await version],
+        [null, null],
         true,
         receipts[2].blockNumber,
         receipts[2].blockNumber
       ) as Promise<Event>,
     ]);
 
-    console.log(`Type manager set: 
+    console.log(`Type one set: 
       - Type: ${logObject((await newTypeEvents)[0].args?.type_)}
       - Version: ${(await newTypeEvents)[0].args?.version}`);
-    console.log(`Type network set: 
+    console.log(`Type two set: 
       - Type: ${logObject((await newTypeEvents)[1].args?.type_)}
       - Version: ${(await newTypeEvents)[1].args?.version}`);
-    console.log(`Type host set: 
+    console.log(`Type three set: 
       - Type: ${logObject((await newTypeEvents)[2].args?.type_)}
       - Version: ${(await newTypeEvents)[2].args?.version}`);
 
     console.log(await registry.getTypes(GAS_OPT));
   });
 
-  it("Should deploy Manager contract", async () => {
-    console.log("\n ==> Deploying Manager contract...\n");
+  it("Should deploy type one contract", async () => {
+    console.log("\n ==> Deploying type one contract...\n");
     me = me!;
-    // to call contract from my account
-    const registryMe = registry.connect(me);
 
-    const data = (
-      await ethers.getContractFactory("Manager", me)
-    ).interface.encodeFunctionData("initialize");
+    const data = typeOneFact.interface.encodeFunctionData("initialize");
     const receipt = await ((await registryMe.deployContract(
-      Manager.bytecode,
+      typeOneFact.bytecode,
       data,
       await random32Bytes(),
-      "manager",
+      "type-one",
       GAS_OPT
     )) as TransactionResponse).wait();
 
@@ -250,42 +252,42 @@ describe("Registry", async function () {
       receipt.blockNumber,
       receipt.blockNumber
     )) as Event;
-    console.log(`Manager deployed event: 
+    console.log(`Type one deployed event: 
       - Proxy: ${deployEvent.args?.proxy}
       - Logic: ${deployEvent.args?.logic}
       - Owner: ${deployEvent.args?.owner}`);
 
-    manager = new Contract(deployEvent.args?.proxy, Manager.abi, me);
-    managerRecord = await registryMe.callStatic.getContractRecord(
-      manager.address,
+    typeOne = new Contract(deployEvent.args?.proxy, typeOneFact.interface, me);
+    const typeOneRecord = await registryMe.callStatic.getContractRecord(
+      typeOne.address,
       GAS_OPT
     );
-    console.log(managerRecord);
+    console.log(typeOneRecord);
 
-    expect(await manager.owner()).to.equal(
+    expect(await typeOne.owner()).to.equal(
       me.address,
-      `Manager's owner not equal my address`
+      `Type one contract's owner not equal my address`
     );
 
-    expect(managerRecord.proxy).to.equal(
+    expect(typeOneRecord.proxy).to.equal(
       deployEvent.args?.proxy,
-      `Record's proxy address not equal event's address`
+      `Type one contract's proxy address not equal event's address`
     );
 
-    expect(managerRecord.type_).to.equal(
-      "manager",
-      `Record type is not manager`
+    expect(typeOneRecord.type_).to.equal(
+      "type-one",
+      `Type one contrac's type is not manager`
     );
   });
 
-  it("Should change version of manager contract to 0.2", async () => {
-    console.log("\n ==> Setting Lan Manager contract Version to 0.2... \n");
+  it("Should change version of type one contract to 0.2", async () => {
+    console.log("\n ==> Setting type one contract Version to 0.2... \n");
     me = me!;
-    const oldVersion = toHexVersion("0.1");
+    // const oldVersion = toHexVersion("0.1");
     const version = toHexVersion("0.2");
 
     const receipt = await ((await registry.setVersion(
-      "Manager", // should change to lower case
+      "type-one", // should change to lower case
       await version,
       GAS_OPT
     )) as TransactionResponse).wait();
@@ -298,7 +300,7 @@ describe("Registry", async function () {
       receipt.blockNumber,
       receipt.blockNumber
     )) as Event;
-    console.log(`Version update event: 
+    console.log(`Version update event:
     - Type: ${logObject(verUpdateEvent.args?.type_)}
     - oldVer: ${verUpdateEvent.args?.oldVersion}
     - Version: ${verUpdateEvent.args?.newVersion}`);
@@ -306,14 +308,13 @@ describe("Registry", async function () {
     expect(await registry.getVersion("manager")).to.equal(await version);
   });
 
-  it("Should upgrade Manager contract", async () => {
-    console.log("\n ==> Upgradeing Manager contract...\n");
+  it("Should upgrade type one contract", async () => {
+    console.log("\n ==> Upgradeing type one contract...\n");
     me = me!;
-    // to call contract from my account
-    const registryMe = registry.connect(me);
+
     const receipt = await ((await registryMe.upgradeContract(
-      manager.address,
-      Manager.bytecode,
+      typeOne.address,
+      typeOneFact.bytecode,
       await random32Bytes(),
       GAS_OPT
     )) as TransactionResponse).wait();
@@ -326,34 +327,13 @@ describe("Registry", async function () {
       receipt.blockNumber,
       receipt.blockNumber
     )) as Event;
-    console.log(`Manager deployed event: 
+    console.log(`Type one Upgraded event: 
       - Proxy: ${upgradedEvent.args?.proxy}
       - OldLogic: ${upgradedEvent.args?.oldLogic}
       - Logic: ${upgradedEvent.args?.newLogic}
       - Owner: ${upgradedEvent.args?.owner}`);
 
-    //console.log(upgradedEvent);
-
-    /* manager = new Contract(deployEvent.args?.proxy, Manager.abi, me);
-    managerRecord = await registryMe.callStatic.getContractRecord(
-      manager.address,
-      GAS_OPT
-    );
-    console.log(managerRecord);
-
-    expect(await manager.owner()).to.equal(
-      me.address,
-      `Manager's owner not equal my address`
-    );
-
-    expect(managerRecord.proxy).to.equal(
-      deployEvent.args?.proxy,
-      `Record's proxy address not equal event's address`
-    );
-
-    expect(managerRecord.type_).to.equal(
-      "manager",
-      `Record type is not manager`
-    ); */
+      
   });
+
 });

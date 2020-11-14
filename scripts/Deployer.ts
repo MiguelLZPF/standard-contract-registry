@@ -1,4 +1,4 @@
-import { Contract, ContractFactory, Signer, Wallet } from "ethers";
+import { Signer, Wallet } from "ethers";
 import { ethers } from "hardhat";
 import { FactoryOptions } from "hardhat/types";
 import { GAS_OPT } from "../scripts/Utils";
