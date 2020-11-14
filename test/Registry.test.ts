@@ -22,12 +22,9 @@ describe("Registry", async function () {
   const WALL_PASS = "password";
   const WALL_ENTROPY = "EnTrOpY";
   // Specific Constants
-  // initial hostname
-  // initial MAC address
-  // initial IP address
+
   // General variables
   let wallets: Wallet[] = [];
-  //let regUpgrader: Wallet | undefined;
   let admin: Wallet | undefined;
   let me: Wallet | undefined;
   // Specific variables
@@ -91,7 +88,8 @@ describe("Registry", async function () {
       admin = wallets[0];
       me = wallets[1];
       registryFact = await ethers.getContractFactory("ContractRegistry");
-      typeOne = await ethers.getContractFactory("TypeOne", me);
+      typeOneFact = await ethers.getContractFactory("TypeOne", me);
+      typeTwoFact = await ethers.getContractFactory("TypeTwo", me);
     } catch (error) {
       console.error(error);
     }
@@ -232,7 +230,7 @@ describe("Registry", async function () {
     me = me!;
     // to call contract from my account
     const registryMe = registry.connect(me);
-    
+
     const data = (
       await ethers.getContractFactory("Manager", me)
     ).interface.encodeFunctionData("initialize");

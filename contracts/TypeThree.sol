@@ -5,7 +5,7 @@ pragma solidity >=0.4.22 <0.8.0;
  * @title Storage
  * @dev Store & retrieve value in a variable
  */
-contract TypeOne {
+contract TypeThree {
 
     uint256 number;
 
