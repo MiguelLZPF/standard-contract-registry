@@ -169,7 +169,7 @@ describe("Registry", async function () {
   // TODO: Adapt code to generic types
   it("Should set example type contracts project types", async () => {
     console.log(
-      "\n ==> Setting example type contracts Types and Versions... \n"
+      "\n ==> Setting example type contracts Types and Versions...\n"
     );
     const version = toHexVersion("0.1");
 
@@ -219,13 +219,13 @@ describe("Registry", async function () {
     ]);
 
     console.log(`Type one set: 
-      - Type: ${logObject((await newTypeEvents)[0].args?.type_)}
+      - Type hash: ${logObject((await newTypeEvents)[0].args?.type_.hash)}
       - Version: ${(await newTypeEvents)[0].args?.version}`);
     console.log(`Type two set: 
-      - Type: ${logObject((await newTypeEvents)[1].args?.type_)}
+      - Type hash: ${logObject((await newTypeEvents)[1].args?.type_.hash)}
       - Version: ${(await newTypeEvents)[1].args?.version}`);
     console.log(`Type three set: 
-      - Type: ${logObject((await newTypeEvents)[2].args?.type_)}
+      - Type hash: ${logObject((await newTypeEvents)[2].args?.type_.hash)}
       - Version: ${(await newTypeEvents)[2].args?.version}`);
 
     console.log(await registry.getTypes(GAS_OPT));
@@ -243,11 +243,11 @@ describe("Registry", async function () {
       "type-one",
       GAS_OPT
     )) as TransactionResponse).wait();
-
+    //console.log(receipt);
     const deployEvent = (await getEvents(
       registryMe,
       "Deployed",
-      [null, null, me.address, "manager", null],
+      [null, null, me.address, null, null],
       true,
       receipt.blockNumber,
       receipt.blockNumber
@@ -255,14 +255,21 @@ describe("Registry", async function () {
     console.log(`Type one deployed event: 
       - Proxy: ${deployEvent.args?.proxy}
       - Logic: ${deployEvent.args?.logic}
-      - Owner: ${deployEvent.args?.owner}`);
+      - Owner: ${deployEvent.args?.owner}\n`);
 
     typeOne = new Contract(deployEvent.args?.proxy, typeOneFact.interface, me);
     const typeOneRecord = await registryMe.callStatic.getContractRecord(
       typeOne.address,
       GAS_OPT
     );
-    console.log(typeOneRecord);
+    console.log(`Type one Record: 
+      - Proxy: ${typeOneRecord.proxy}
+      - Logic: ${typeOneRecord.logic}
+      - Owner: ${typeOneRecord.owner}
+      - Type: ${typeOneRecord.type_}
+      - Version: ${typeOneRecord.version}
+      - Date Created: ${new Date(typeOneRecord.dateCreated * 1000)}
+      - Date Updated: ${new Date(typeOneRecord.dateUpdated * 1000)}`);
 
     expect(await typeOne.owner()).to.equal(
       me.address,
@@ -301,11 +308,11 @@ describe("Registry", async function () {
       receipt.blockNumber
     )) as Event;
     console.log(`Version update event:
-    - Type: ${logObject(verUpdateEvent.args?.type_)}
+    - Type hash: ${logObject(verUpdateEvent.args?.type_.hash)}
     - oldVer: ${verUpdateEvent.args?.oldVersion}
     - Version: ${verUpdateEvent.args?.newVersion}`);
 
-    expect(await registry.getVersion("manager")).to.equal(await version);
+    expect(await registry.getVersion("type-one")).to.equal(await version);
   });
 
   it("Should upgrade type one contract", async () => {
@@ -333,7 +340,17 @@ describe("Registry", async function () {
       - Logic: ${upgradedEvent.args?.newLogic}
       - Owner: ${upgradedEvent.args?.owner}`);
 
-      
+    const typeOneRecord = await registryMe.callStatic.getContractRecord(
+      typeOne.address,
+      GAS_OPT
+    );
+    console.log(`Type one Record: 
+      - Proxy: ${typeOneRecord.proxy}
+      - Logic: ${typeOneRecord.logic}
+      - Owner: ${typeOneRecord.owner}
+      - Type: ${typeOneRecord.type_}
+      - Version: ${typeOneRecord.version}
+      - Date Created: ${new Date(typeOneRecord.dateCreated * 1000)}
+      - Date Updated: ${new Date(typeOneRecord.dateUpdated * 1000)}`);
   });
-
 });

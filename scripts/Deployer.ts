@@ -107,7 +107,7 @@ export const deployNinitRegistry = async (
     // Deploy contracts
     const registryFactory = ethers.getContractFactory("ContractRegistry", factoryOpt);
     const tupFactory = ethers.getContractFactory(
-      "TrasparentUpgradeableProxy",
+      "TransparentUpgradeableProxy",
       factoryOpt
     );
     console.log(` 1. deploying registry logic...`);

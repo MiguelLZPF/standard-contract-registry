@@ -223,7 +223,9 @@ contract ContractRegistry is Ownable {
       "upgrade went wrong logic addresses cannot be the same"
     );
     record.version = currentVer;
-    //Upgraded(proxy,oldLogic,newLogic,owner,type_,oldVersion,newVersion);
+    record.dateUpdated = block.timestamp;
+    // save updated contract record
+    recordByProxy[_proxy] = record;
     emit Upgraded(
       record.proxy,
       oldLogic,
