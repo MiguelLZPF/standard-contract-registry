@@ -20,11 +20,10 @@ import { Strings as S } from "./libs/utils/Strings.sol";
 contract ContractRegistry is Ownable {
   // EVENTS
   event Initialized(address indexed registry, address indexed owner);
-  event NewType(string indexed type_, bytes2 indexed version);
+  event NewType(bytes32 indexed id, string type_, bytes2 indexed version);
   event VersionUpdated(
-    string indexed type_,
+    ContractType indexed type_,
     bytes2 indexed oldVersion,
-    bytes2 indexed newVersion
   );
   event Deployed(
     address proxy,
@@ -51,23 +50,29 @@ contract ContractRegistry is Ownable {
   );
 
   // STRUCTS
+  struct ContractType {
+    // id that will be the keccak256 of the typeName
+    bytes32 id;
+    // -- types like: manager, network, host... all lower case
+    string typeName;
+    // -- version like: 0x0102 == v1.2, 0xFFFF == v255.255
+    bytes2 version;
+  }
   struct ContractRecord {
     address proxy;
     address logic;
     address owner;
-    // -- types like: Manager, Network, Host...
     string type_;
-    // -- version like: 0x0102 == v1.2, 0xFFFF == v255.255
-    bytes2 version;
+    bytes2 currentVersion;
     uint256 dateCreated;
     uint256 dateUpdated;
   }
 
   // PROPERTIES
   // Types and versions
-  string[] knownTypes;
+  ContractType[] knownTypes;
   mapping(string => bool) public isType;
-  mapping(string => bytes2) public currentVersion;
+  mapping(bytes32 => ContractType) public typeById;
   // Contracts Registry
   ContractRecord[] records;
   mapping(address => ContractRecord) recordByProxy;
@@ -187,15 +192,16 @@ contract ContractRegistry is Ownable {
   ) internal {
     _type = checkType(_type);
     bytes2 version = getVersion(_type);
-    ContractRecord memory record = ContractRecord(
-      _proxy,
-      _logic,
-      _msgSender(), // owner
-      _type,
-      version,
-      block.timestamp,
-      block.timestamp
-    );
+    ContractRecord memory record =
+      ContractRecord(
+        _proxy,
+        _logic,
+        _msgSender(), // owner
+        _type,
+        version,
+        block.timestamp,
+        block.timestamp
+      );
     setRecord(record);
     emit Created(_msgSender(), _proxy, _logic, _type, version);
   }
