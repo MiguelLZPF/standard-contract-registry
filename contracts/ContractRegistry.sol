@@ -23,7 +23,7 @@ contract ContractRegistry is Ownable {
   event NewType(bytes32 indexed id, string type_, bytes2 indexed version);
   event VersionUpdated(
     ContractType indexed type_,
-    bytes2 indexed oldVersion,
+    bytes2 indexed oldVersion
   );
   event Deployed(
     address proxy,
