@@ -51,7 +51,7 @@ contract ContractRegistry is Ownable {
     address indexed oldOwner,
     address indexed newOwner
   );
-
+  // =======
   // STRUCTS
   struct ContractType {
     // id that will be the keccak256 of the typeName
@@ -70,6 +70,14 @@ contract ContractRegistry is Ownable {
     uint256 dateCreated;
     uint256 dateUpdated;
   }
+  // Type Array
+  struct AContractType {
+    ContractType[] array;
+    // need an index to remove one item by reference (proxy address)
+    // 0 index reserved for non init. 1,2,3... N
+    //     is like ask "where are this id stored?"
+    mapping(bytes32 => uint256) index;
+  }
   // Contract Record Array
   struct AContractRecord {
     ContractRecord[] array;
@@ -81,20 +89,13 @@ contract ContractRegistry is Ownable {
   // PROPERTIES
   // 1. Types and versions
   // 1.1 Array to store all known types
-  //     need an index to get/update/remove one item by reference (id)
-  //     0 index reserved for non init. 1,2,3... N
-  //     is like ask "where are this id stored?"
-  ContractType[] knownTypes;
-  mapping(bytes32 => uint256) typesIndex;
+  AContractType knownTypes;
   // 1.2 Check if string is a type
   mapping(string => bool) public isType;
-  // DEPRECATED 1.3 Get a type by reference (id)
-  //mapping(bytes32 => ContractType) public typeById;
+
   // 2. Contract Registry
   // 2.1 Array to store all contract records with reference (proxy)
   AContractRecord records;
-  //ContractRecord[] records;
-  //mapping(address => uint256) recordsIndex;
   // 2.2 Get all records of one owner
   mapping(address => AContractRecord) recordsByOwner;
   // 2.3 Get all records of one type id
@@ -133,9 +134,9 @@ contract ContractRegistry is Ownable {
     bytes32 id = S.hash(_type);
     ContractType memory newType = ContractType(id, _type, _version);
     // store the contract type
-    knownTypes.push(newType);
+    knownTypes.array.push(newType);
     // -- save the index + 1 = length
-    typesIndex[id] = knownTypes.length;
+    knownTypes.index[id] = knownTypes.array.length;
     isType[_type] = true;
 
     emit NewType(id, _type, _version);
@@ -147,7 +148,7 @@ contract ContractRegistry is Ownable {
     @return a ContractType by index
   */
   function getType(bytes32 _id) public view returns (ContractType memory) {
-    return knownTypes[typesIndex[_id] - 1];
+    return knownTypes.array[knownTypes.index[_id] - 1];
   }
 
   /**
@@ -161,7 +162,7 @@ contract ContractRegistry is Ownable {
     returns (ContractType memory)
   {
     bytes32 id = S.hash(_typeName);
-    return knownTypes[typesIndex[id] - 1];
+    return knownTypes.array[knownTypes.index[id] - 1];
   }
 
   /**
@@ -169,7 +170,7 @@ contract ContractRegistry is Ownable {
     @return all ContractTypes
   */
   function getTypes() public view returns (ContractType[] memory) {
-    return knownTypes;
+    return knownTypes.array;
   }
 
   /**
@@ -179,12 +180,12 @@ contract ContractRegistry is Ownable {
   */
   function setVersion(bytes32 _typeId, bytes2 _newVersion) public onlyOwner {
     require(
-      typesIndex[_typeId] > 0,
+      knownTypes.index[_typeId] > 0,
       "this type is not defined, use 'setType' function instead"
     );
     // get contract type from id
-    uint256 index = typesIndex[_typeId] - 1;
-    ContractType memory typeToUpdate = knownTypes[index];
+    uint256 index = knownTypes.index[_typeId] - 1;
+    ContractType memory typeToUpdate = knownTypes.array[index];
 
     require(
       typeToUpdate.version < _newVersion,
@@ -194,7 +195,7 @@ contract ContractRegistry is Ownable {
     // set the new version to the type
     typeToUpdate.version = _newVersion;
     // store the new contract type
-    knownTypes[typesIndex[typeToUpdate.id] - 1] = typeToUpdate;
+    knownTypes.array[index] = typeToUpdate;
   }
 
   /**
@@ -203,7 +204,7 @@ contract ContractRegistry is Ownable {
     @return the latest contract type version by index
   */
   function getVersion(bytes32 _typeId) public view returns (bytes2) {
-    return knownTypes[typesIndex[_typeId] - 1].version;
+    return knownTypes.array[knownTypes.index[_typeId] - 1].version;
   }
 
   /**
@@ -213,7 +214,7 @@ contract ContractRegistry is Ownable {
   */
   function getVersion(string memory _typeName) public view returns (bytes2) {
     bytes32 typeId = S.hash(_typeName);
-    return knownTypes[typesIndex[typeId] - 1].version;
+    return knownTypes.array[knownTypes.index[typeId] - 1].version;
   }
 
   /**
@@ -221,16 +222,16 @@ contract ContractRegistry is Ownable {
     @param _typeId the id of the contract type to remove  
   */
   function removeType(bytes32 _typeId) public {
-    uint256 index = typesIndex[_typeId] - 1;
-    emit TypeDeleted(knownTypes[index]);
+    uint256 index = knownTypes.index[_typeId] - 1;
+    emit TypeDeleted(knownTypes.array[index]);
     // get last element of the array
-    ContractType memory last = knownTypes[knownTypes.length - 1];
+    ContractType memory last = knownTypes.array[knownTypes.array.length - 1];
     // write the last element on the index of the contract type to remove
-    knownTypes[index] = last;
+    knownTypes.array[index] = last;
     // update the index of the (old) last contract type
-    typesIndex[last.id] = index;
+    knownTypes.index[last.id] = index;
     // remove duplicated last element from the array
-    knownTypes.pop();
+    knownTypes.array.pop();
   }
 
   /*________________________________*/
@@ -311,8 +312,8 @@ contract ContractRegistry is Ownable {
     bytes32 _salt
   ) external fromOwnerOf(_proxy) {
     // get the contract record
-    uint256 index = recordsIndex[_proxy] - 1;
-    ContractRecord memory record = records[index];
+    uint256 index = records.index[_proxy] - 1;
+    ContractRecord memory record = records.array[index];
     // check if contract needs to be upgraded
     bytes2 oldVersion = record.version;
     bytes2 currentVer = getVersion(record.type_);
@@ -339,9 +340,12 @@ contract ContractRegistry is Ownable {
     record.owner = Ownable(_proxy).owner();
     record.dateUpdated = block.timestamp;
     // save updated contract record
-    records[index] = record;
-    recordsByOwner[record.owner].push(record);
-    recordsByType[record.type_].push(record);
+    records.array[index] = record;
+    // use index to avoid "stack too deep"
+    index = recordsByOwner[record.owner].index[_proxy] - 1;
+    recordsByOwner[record.owner].array[index] = record;
+    index = recordsByType[record.type_].index[_proxy] - 1;
+    recordsByType[record.type_].array[index] = record;
 
     emit Upgraded(
       record.proxy,
@@ -356,15 +360,17 @@ contract ContractRegistry is Ownable {
 
   function updateRecordOwner(address _proxy) public {
     // get the contract record
-    uint256 index = recordsIndex[_proxy] - 1;
-    ContractRecord memory record = records[index];
+    uint256 index = records.index[_proxy] - 1;
+    ContractRecord memory record = records.array[index];
     address oldOwner = record.owner;
     // update contract record
     record.owner = Ownable(_proxy).owner();
     // save updated contract record
-    records[index] = record;
-    recordsByOwner[record.owner].push(record);
-    recordsByType[record.type_].push(record);
+    records.array[index] = record;
+    index = recordsByOwner[record.owner].index[_proxy] - 1;
+    recordsByOwner[record.owner].array[index] = record;
+    index = recordsByType[record.type_].index[_proxy] - 1;
+    recordsByType[record.type_].array[index] = record;
     emit OwnerUpdated(record.proxy, oldOwner, record.owner);
   }
 
@@ -378,7 +384,7 @@ contract ContractRegistry is Ownable {
     view
     returns (ContractRecord memory)
   {
-    return records[recordsIndex[_proxy] - 1];
+    return records.array[records.index[_proxy] - 1];
   }
 
   // MODIFIERS
