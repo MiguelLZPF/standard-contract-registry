@@ -50,7 +50,7 @@ contract TransparentUpgradeableProxy is UpgradeableProxy {
      * @dev Modifier used internally that will delegate the call to the implementation unless the sender is the admin.
      */
     modifier ifAdmin() {
-        if (msg.sender == _admin()) {
+        if (msg.sender == _getAdmin()) {
             _;
         } else {
             _fallback();
@@ -67,7 +67,7 @@ contract TransparentUpgradeableProxy is UpgradeableProxy {
      * `0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103`
      */
     function admin() external ifAdmin returns (address currentAdmin) {
-        return _admin();
+        return _getAdmin();
     }
 
     /**
@@ -92,7 +92,7 @@ contract TransparentUpgradeableProxy is UpgradeableProxy {
      */
     function changeAdmin(address newAdmin) external ifAdmin {
         require(newAdmin != address(0), "TransparentUpgradeableProxy: new admin is the zero address");
-        emit AdminChanged(_admin(), newAdmin);
+        emit AdminChanged(_getAdmin(), newAdmin);
         _setAdmin(newAdmin);
     }
 
@@ -122,7 +122,7 @@ contract TransparentUpgradeableProxy is UpgradeableProxy {
     /**
      * @dev Returns the current admin.
      */
-    function _admin() internal view returns (address adm) {
+    function _getAdmin() internal view returns (address adm) {
         bytes32 slot = _ADMIN_SLOT;
         // solhint-disable-next-line no-inline-assembly
         assembly {
@@ -146,7 +146,7 @@ contract TransparentUpgradeableProxy is UpgradeableProxy {
      * @dev Makes sure the admin cannot access the fallback function. See {Proxy-_beforeFallback}.
      */
     function _beforeFallback() internal override virtual {
-        require(msg.sender != _admin(), "TransparentUpgradeableProxy: admin cannot fallback to proxy target");
+        require(msg.sender != _getAdmin(), "TransparentUpgradeableProxy: admin cannot fallback to proxy target");
         super._beforeFallback();
     }
 }
