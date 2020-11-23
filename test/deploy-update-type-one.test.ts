@@ -14,6 +14,7 @@ import {
 } from "../scripts/Utils";
 import { deploy, deployNinitRegistry } from "../scripts/Deployer";
 import { expect } from "chai";
+import { formatBytes32String, keccak256, toUtf8Bytes } from "ethers/lib/utils";
 
 describe("Registry", async function () {
   //this.timeout
@@ -164,9 +165,11 @@ describe("Registry", async function () {
       admin.address,
       `Event's owner not equal admin's address`
     );
+    expect(
+      (await registry.callStatic.getTypeByName("generic")).typeName
+    ).to.equal("generic", "Generic type not setted in initializer");
   });
 
-  // TODO: Adapt code to generic types
   it("Should set example type contracts project types", async () => {
     console.log(
       "\n ==> Setting example type contracts Types and Versions...\n"
@@ -258,7 +261,7 @@ describe("Registry", async function () {
       - Owner: ${deployEvent.args?.owner}\n`);
 
     typeOne = new Contract(deployEvent.args?.proxy, typeOneFact.interface, me);
-    const typeOneRecord = await registryMe.callStatic.getContractRecord(
+    const typeOneRecord = await registryMe.callStatic.getRecord(
       typeOne.address,
       GAS_OPT
     );
@@ -294,7 +297,7 @@ describe("Registry", async function () {
     const version = toHexVersion("0.2");
 
     const receipt = await ((await registry.setVersion(
-      "type-one", // should change to lower case
+      keccak256(toUtf8Bytes("type-one")),
       await version,
       GAS_OPT
     )) as TransactionResponse).wait();

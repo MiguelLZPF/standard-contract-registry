@@ -115,6 +115,9 @@ contract ContractRegistry is Ownable {
     __Ownable_init();
     // creates a proxy admin needed to deploy and upgrade contract records
     proxyAdm = new ProxyAdmin();
+    // define the first generic contract type
+    setType("generic", bytes2(uint16(256)));
+
     emit Initialized(address(this), owner());
   }
 
@@ -156,7 +159,7 @@ contract ContractRegistry is Ownable {
     @param _typeName the name of the type to create
     @return a ContractType from the hashed type name
   */
-  function getType(string memory _typeName)
+  function getTypeByName(string memory _typeName)
     public
     view
     returns (ContractType memory)
@@ -212,7 +215,11 @@ contract ContractRegistry is Ownable {
     @param _typeName the name of the type to create
     @return the latest contract type version from the hashed type name
   */
-  function getVersion(string memory _typeName) public view returns (bytes2) {
+  function getVersionByName(string memory _typeName)
+    public
+    view
+    returns (bytes2)
+  {
     bytes32 typeId = S.hash(_typeName);
     return knownTypes.array[knownTypes.index[typeId] - 1].version;
   }
@@ -255,7 +262,7 @@ contract ContractRegistry is Ownable {
     address proxy = address(new TUP(logic, address(proxyAdm), _data));
     // The owner is the sender
     Ownable(proxy).transferOwnership(_msgSender());
-    emit Deployed(proxy, logic, _msgSender(), _type, getVersion(_type));
+    emit Deployed(proxy, logic, _msgSender(), _type, getVersionByName(_type));
     storeRecord(proxy, logic, _type);
   }
 
@@ -272,7 +279,7 @@ contract ContractRegistry is Ownable {
   ) internal {
     // checks
     require(isType[_type], "Contract type parameter does not exist");
-    bytes2 version = getVersion(_type);
+    bytes2 version = getVersionByName(_type);
     // create the record
     ContractRecord memory record =
       ContractRecord(
@@ -316,7 +323,7 @@ contract ContractRegistry is Ownable {
     ContractRecord memory record = records.array[index];
     // check if contract needs to be upgraded
     bytes2 oldVersion = record.version;
-    bytes2 currentVer = getVersion(record.type_);
+    bytes2 currentVer = getVersionByName(record.type_);
     require(
       oldVersion < currentVer,
       "this contract is already upgraded to the latest version"
