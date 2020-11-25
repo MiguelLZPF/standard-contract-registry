@@ -305,17 +305,20 @@ describe("Registry", async function () {
     const verUpdateEvent = (await getEvents(
       registry,
       "VersionUpdated",
-      [null, null, null],
+      [null, null],
       true,
       receipt.blockNumber,
       receipt.blockNumber
     )) as Event;
+    console.log(verUpdateEvent);
     console.log(`Version update event:
     - Type hash: ${logObject(verUpdateEvent.args?.type_.hash)}
     - oldVer: ${verUpdateEvent.args?.oldVersion}
     - Version: ${verUpdateEvent.args?.newVersion}`);
 
-    expect(await registry.getVersion("type-one")).to.equal(await version);
+    expect(
+      await registry.getVersion(keccak256(toUtf8Bytes("type-one")))
+    ).to.equal(await version);
   });
 
   it("Should upgrade type one contract", async () => {
