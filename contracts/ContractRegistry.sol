@@ -18,23 +18,22 @@ import { Strings as S } from "./libs/utils/Strings.sol";
        for an owner and keeps record of them, and their versions and so on.
  */
 contract ContractRegistry is Ownable {
+  // ======
   // EVENTS
   event Initialized(address indexed registry, address indexed owner);
   event NewType(bytes32 indexed id, string type_, bytes2 indexed version);
-  event VersionUpdated(ContractType indexed type_, bytes2 indexed oldVersion);
-  event TypeDeleted(ContractType indexed type_);
+  event VersionUpdated(
+    bytes32 indexed id,
+    bytes2 indexed oldVersion,
+    bytes2 indexed newVersion
+  );
+  event TypeDeleted(bytes32 indexed id);
   event Deployed(
-    address proxy,
+    address indexed proxy,
     address logic,
     address indexed owner,
-    string indexed type_,
-    bytes2 indexed version
-  );
-  event Created(
-    address indexed owner,
-    address indexed proxy,
-    address indexed logic,
-    string type_,
+    bytes32 indexed typeId,
+    string typeName,
     bytes2 version
   );
   event Upgraded(
@@ -42,11 +41,12 @@ contract ContractRegistry is Ownable {
     address oldLogic,
     address newLogic,
     address indexed owner,
-    string indexed type_,
+    bytes32 indexed typeId,
+    string typeName,
     bytes2 oldVersion,
     bytes2 newVersion
   );
-  event OwnerUpdated(
+  event OwnerChanged(
     address indexed proxy,
     address indexed oldOwner,
     address indexed newOwner
@@ -194,7 +194,7 @@ contract ContractRegistry is Ownable {
       typeToUpdate.version < _newVersion,
       "new version must be greater than current one"
     );
-    emit VersionUpdated(typeToUpdate, typeToUpdate.version);
+    emit VersionUpdated(typeToUpdate.id, typeToUpdate.version, _newVersion);
     // set the new version to the type
     typeToUpdate.version = _newVersion;
     // store the new contract type
@@ -230,7 +230,7 @@ contract ContractRegistry is Ownable {
   */
   function removeType(bytes32 _typeId) public {
     uint256 index = knownTypes.index[_typeId] - 1;
-    emit TypeDeleted(knownTypes.array[index]);
+    emit TypeDeleted(knownTypes.array[index].id);
     // get last element of the array
     ContractType memory last = knownTypes.array[knownTypes.array.length - 1];
     // write the last element on the index of the contract type to remove
@@ -258,11 +258,19 @@ contract ContractRegistry is Ownable {
     string memory _type
   ) external {
     _type = S.toLower(_type);
+    bytes32 typeId = S.hash(_type);
     address logic = Create2.deploy(0, _salt, _bytecode);
     address proxy = address(new TUP(logic, address(proxyAdm), _data));
     // The owner is the sender
     Ownable(proxy).transferOwnership(_msgSender());
-    emit Deployed(proxy, logic, _msgSender(), _type, getVersionByName(_type));
+    emit Deployed(
+      proxy,
+      logic,
+      _msgSender(),
+      typeId,
+      _type,
+      getVersion(S.hash(_type))
+    );
     storeRecord(proxy, logic, _type);
   }
 
@@ -303,8 +311,6 @@ contract ContractRegistry is Ownable {
     recordsByType[record.type_].index[_proxy] = recordsByType[record.type_]
       .array
       .length;
-
-    emit Created(_msgSender(), _proxy, _logic, _type, version);
   }
 
   /**
@@ -359,13 +365,34 @@ contract ContractRegistry is Ownable {
       oldLogic,
       record.logic,
       record.owner,
+      S.hash(record.type_),
       record.type_,
       oldVersion,
       record.version
     );
   }
 
+  /**
+    2.4 Transfer ownership and update contract record
+    @param _proxy address of the proxy contract to update
+    @param _newOwner address of the new owner
+  */
+  function transferOwner(address _proxy, address _newOwner) public {
+    // transferOwnership using owner contract
+    Ownable(_proxy).transferOwnership(_newOwner);
+    // use the implemented function to update the record
+    updateRecordOwner(_proxy);
+  }
+
+  /**
+    2.5 Updates an already changed owner from a contract record
+    @param _proxy address of the proxy contract to update
+  */
   function updateRecordOwner(address _proxy) public {
+    require(
+      records.index[_proxy] > 0,
+      "This contract has not been registered yet"
+    );
     // get the contract record
     uint256 index = records.index[_proxy] - 1;
     ContractRecord memory record = records.array[index];
@@ -378,7 +405,7 @@ contract ContractRegistry is Ownable {
     recordsByOwner[record.owner].array[index] = record;
     index = recordsByType[record.type_].index[_proxy] - 1;
     recordsByType[record.type_].array[index] = record;
-    emit OwnerUpdated(record.proxy, oldOwner, record.owner);
+    emit OwnerChanged(record.proxy, oldOwner, record.owner);
   }
 
   /**

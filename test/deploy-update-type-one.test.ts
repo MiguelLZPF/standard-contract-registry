@@ -310,11 +310,11 @@ describe("Registry", async function () {
       receipt.blockNumber,
       receipt.blockNumber
     )) as Event;
-    console.log(verUpdateEvent);
+    //console.log(verUpdateEvent);
     console.log(`Version update event:
-    - Type hash: ${logObject(verUpdateEvent.args?.type_.hash)}
-    - oldVer: ${verUpdateEvent.args?.oldVersion}
-    - Version: ${verUpdateEvent.args?.newVersion}`);
+    - ID: ${verUpdateEvent.args?.id}
+    - Old Version: ${verUpdateEvent.args?.oldVersion}
+    - New Version: ${verUpdateEvent.args?.newVersion}`);
 
     expect(
       await registry.getVersion(keccak256(toUtf8Bytes("type-one")))
@@ -346,7 +346,7 @@ describe("Registry", async function () {
       - Logic: ${upgradedEvent.args?.newLogic}
       - Owner: ${upgradedEvent.args?.owner}`);
 
-    const typeOneRecord = await registryMe.callStatic.getContractRecord(
+    const typeOneRecord = await registryMe.callStatic.getRecord(
       typeOne.address,
       GAS_OPT
     );
