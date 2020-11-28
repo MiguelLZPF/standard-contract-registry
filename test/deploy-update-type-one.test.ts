@@ -3,14 +3,16 @@ import { ethers, hardhatArguments } from "hardhat";
 
 import * as fs from "async-file";
 import {
+  createWallet,
   deploy,
   deployUpgradeable,
   GAS_OPT,
   getEvents,
+  provider,
   TransactionResponse,
 } from "../scripts/Blockchain";
 import { expect } from "chai";
-import { logObject, random32Bytes, toHexVersion } from "../scripts/Utils";
+import { random32Bytes, toHexVersion } from "../scripts/Utils";
 import { setTypes } from "../scripts/Registry";
 import { keccak256, toUtf8Bytes } from "ethers/lib/utils";
 
@@ -24,8 +26,8 @@ describe("Registry", async function () {
 
   // General variables
   let wallets: Wallet[] = [];
-  let admin: Wallet | undefined;
-  let me: Wallet | undefined;
+  let admin: Wallet;
+  let me: Wallet;
   // Specific variables
   // -- Contract Factories
   let registryFact: ContractFactory;
@@ -95,7 +97,6 @@ describe("Registry", async function () {
 
   it("Should deploy Proxy Admin contract", async () => {
     console.log("\n ==> Deploying Proxy Admin contract...\n");
-    admin = admin!;
 
     proxyAdmin = (await deploy("ProxyAdmin", { signer: admin }))!;
 
@@ -168,12 +169,12 @@ describe("Registry", async function () {
     console.log("\n ==> Setting example type contracts Types and Versions...\n");
     //const version = toHexVersion("0.1");
 
-    const receipts = await setTypes(["type-one", "type-two", "type-three"], registry);
+    const receipts = await setTypes(registry, ["type-one", "type-two", "type-three"]);
 
     const newTypeEvents = (await getEvents(
       registry,
       "NewType",
-      [null, null],
+      [null, null, null],
       false,
       receipts[0].blockNumber,
       receipts[0].blockNumber

@@ -1,4 +1,4 @@
-import { Contract, ContractFactory, providers, Signer, Wallet, Event } from "ethers";
+import { Contract, providers, Signer, Wallet, Event } from "ethers";
 import { ethers } from "hardhat";
 import { FactoryOptions } from "hardhat/types";
 import * as fs from "async-file";
