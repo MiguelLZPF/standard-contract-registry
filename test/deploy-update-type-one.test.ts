@@ -3,18 +3,16 @@ import { ethers, hardhatArguments } from "hardhat";
 
 import * as fs from "async-file";
 import {
-  createWallet,
+  deploy,
+  deployUpgradeable,
   GAS_OPT,
   getEvents,
-  logObject,
-  provider,
-  random32Bytes,
-  toHexVersion,
   TransactionResponse,
-} from "../scripts/Utils";
-import { deploy, deployNinitRegistry } from "../scripts/Deployer";
+} from "../scripts/Blockchain";
 import { expect } from "chai";
-import { formatBytes32String, keccak256, toUtf8Bytes } from "ethers/lib/utils";
+import { logObject, random32Bytes, toHexVersion } from "../scripts/Utils";
+import { setTypes } from "../scripts/Registry";
+import { keccak256, toUtf8Bytes } from "ethers/lib/utils";
 
 describe("Registry", async function () {
   //this.timeout
@@ -65,11 +63,7 @@ describe("Registry", async function () {
       // Only takes almost the same amount of time to create only one
       let promWallets: Promise<Wallet | undefined>[] = [];
       for (let index = 0; index < WALL_NUMBER; index++) {
-        wallet = createWallet(
-          `./keystore/wallet_${index}.json`,
-          WALL_PASS,
-          WALL_ENTROPY
-        );
+        wallet = createWallet(`./keystore/wallet_${index}.json`, WALL_PASS, WALL_ENTROPY);
         promWallets.push(wallet);
       }
       wallets = (await Promise.all(promWallets)) as Wallet[];
@@ -119,10 +113,11 @@ describe("Registry", async function () {
     console.log("\n ==> Deploying registry contract...\n");
     admin = admin!;
 
-    registry = (await deployNinitRegistry(
+    registry = (await deployUpgradeable(
+      "ContractRegistry",
       { signer: admin },
       proxyAdmin.address
-    ))!;
+    )) as Contract;
     registryMe = registry.connect(me!);
 
     console.log(`Registry successfully deployed:
@@ -149,9 +144,7 @@ describe("Registry", async function () {
       `Registry's owner not equal admin's address`
     );
 
-    expect(
-      await proxyAdmin.callStatic.getProxyAdmin(registry.address, GAS_OPT)
-    ).to.equal(
+    expect(await proxyAdmin.callStatic.getProxyAdmin(registry.address, GAS_OPT)).to.equal(
       proxyAdmin.address,
       `Registry's admin not equal proxy admin's address`
     );
@@ -165,71 +158,33 @@ describe("Registry", async function () {
       admin.address,
       `Event's owner not equal admin's address`
     );
-    expect(
-      (await registry.callStatic.getTypeByName("generic")).typeName
-    ).to.equal("generic", "Generic type not setted in initializer");
+    expect((await registry.callStatic.getTypeByName("generic")).typeName).to.equal(
+      "generic",
+      "Generic type not setted in initializer"
+    );
   });
 
   it("Should set example type contracts project types", async () => {
-    console.log(
-      "\n ==> Setting example type contracts Types and Versions...\n"
-    );
-    const version = toHexVersion("0.1");
+    console.log("\n ==> Setting example type contracts Types and Versions...\n");
+    //const version = toHexVersion("0.1");
 
-    const receipts = await Promise.all([
-      ((await registry.setType(
-        "type-one", // should change to lower case
-        await version,
-        GAS_OPT
-      )) as TransactionResponse).wait(),
-      ((await registry.setType(
-        "type-two", // should change to lower case
-        await version,
-        GAS_OPT
-      )) as TransactionResponse).wait(),
-      ((await registry.setType(
-        "type-three", // should change to lower case
-        await version,
-        GAS_OPT
-      )) as TransactionResponse).wait(),
-    ]);
+    const receipts = await setTypes(["type-one", "type-two", "type-three"], registry);
 
-    const newTypeEvents = Promise.all([
-      getEvents(
-        registry,
-        "NewType",
-        [null, null],
-        true,
-        receipts[0].blockNumber,
-        receipts[0].blockNumber
-      ) as Promise<Event>,
-      getEvents(
-        registry,
-        "NewType",
-        [null, null],
-        true,
-        receipts[1].blockNumber,
-        receipts[1].blockNumber
-      ) as Promise<Event>,
-      getEvents(
-        registry,
-        "NewType",
-        [null, null],
-        true,
-        receipts[2].blockNumber,
-        receipts[2].blockNumber
-      ) as Promise<Event>,
-    ]);
+    const newTypeEvents = (await getEvents(
+      registry,
+      "NewType",
+      [null, null],
+      false,
+      receipts[0].blockNumber,
+      receipts[0].blockNumber
+    )) as Event[];
 
-    console.log(`Type one set: 
-      - Type hash: ${logObject((await newTypeEvents)[0].args?.type_.hash)}
-      - Version: ${(await newTypeEvents)[0].args?.version}`);
-    console.log(`Type two set: 
-      - Type hash: ${logObject((await newTypeEvents)[1].args?.type_.hash)}
-      - Version: ${(await newTypeEvents)[1].args?.version}`);
-    console.log(`Type three set: 
-      - Type hash: ${logObject((await newTypeEvents)[2].args?.type_.hash)}
-      - Version: ${(await newTypeEvents)[2].args?.version}`);
+    newTypeEvents.forEach((event) => {
+      console.log(`Type '${event.args?.type_}' set: 
+      - Id: ${event.args?.id}
+      - Name: ${event.args?.type_}
+      - Version: ${event.args?.version}`);
+    });
 
     console.log(await registry.getTypes(GAS_OPT));
   });
@@ -261,10 +216,7 @@ describe("Registry", async function () {
       - Owner: ${deployEvent.args?.owner}\n`);
 
     typeOne = new Contract(deployEvent.args?.proxy, typeOneFact.interface, me);
-    const typeOneRecord = await registryMe.callStatic.getRecord(
-      typeOne.address,
-      GAS_OPT
-    );
+    const typeOneRecord = await registryMe.callStatic.getRecord(typeOne.address, GAS_OPT);
     console.log(`Type one Record: 
       - Proxy: ${typeOneRecord.proxy}
       - Logic: ${typeOneRecord.logic}
@@ -284,10 +236,7 @@ describe("Registry", async function () {
       `Type one contract's proxy address not equal event's address`
     );
 
-    expect(typeOneRecord.type_).to.equal(
-      "type-one",
-      `Type one contrac's type is not manager`
-    );
+    expect(typeOneRecord.type_).to.equal("type-one", `Type one contrac's type is not manager`);
   });
 
   it("Should change version of type one contract to 0.2", async () => {
@@ -316,9 +265,7 @@ describe("Registry", async function () {
     - Old Version: ${verUpdateEvent.args?.oldVersion}
     - New Version: ${verUpdateEvent.args?.newVersion}`);
 
-    expect(
-      await registry.getVersion(keccak256(toUtf8Bytes("type-one")))
-    ).to.equal(await version);
+    expect(await registry.getVersion(keccak256(toUtf8Bytes("type-one")))).to.equal(await version);
   });
 
   it("Should upgrade type one contract", async () => {
@@ -346,10 +293,7 @@ describe("Registry", async function () {
       - Logic: ${upgradedEvent.args?.newLogic}
       - Owner: ${upgradedEvent.args?.owner}`);
 
-    const typeOneRecord = await registryMe.callStatic.getRecord(
-      typeOne.address,
-      GAS_OPT
-    );
+    const typeOneRecord = await registryMe.callStatic.getRecord(typeOne.address, GAS_OPT);
     console.log(`Type one Record: 
       - Proxy: ${typeOneRecord.proxy}
       - Logic: ${typeOneRecord.logic}
