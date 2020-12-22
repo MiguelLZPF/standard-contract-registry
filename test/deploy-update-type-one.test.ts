@@ -16,31 +16,34 @@ import { random32Bytes, toHexVersion } from "../scripts/Utils";
 import { setTypes } from "../scripts/Registry";
 import { keccak256, toUtf8Bytes } from "ethers/lib/utils";
 
+import { TypeOne } from "../typechain/TypeOne";
+
+// General Contants
+const WALL_NUMBER = 3;
+const WALL_PASS = "password";
+const WALL_ENTROPY = "EnTrOpY";
+// Specific Constants
+
+// General variables
+let wallets: Wallet[] = [];
+let admin: Wallet;
+let me: Wallet;
+// Specific variables
+// -- Contract Factories
+let registryFact: ContractFactory;
+let typeOneFact: ContractFactory;
+let typeTwoFact: ContractFactory;
+let typeThreeFact: ContractFactory;
+// -- Contracts
+let proxyAdmin: Contract;
+let registry: Contract;
+let registryMe: Contract;
+let typeOne: TypeOne;
+let typeTwo: Contract;
+let typeThree: Contract;
+
 describe("Registry", async function () {
   //this.timeout
-  // General Contants
-  const WALL_NUMBER = 3;
-  const WALL_PASS = "password";
-  const WALL_ENTROPY = "EnTrOpY";
-  // Specific Constants
-
-  // General variables
-  let wallets: Wallet[] = [];
-  let admin: Wallet;
-  let me: Wallet;
-  // Specific variables
-  // -- Contract Factories
-  let registryFact: ContractFactory;
-  let typeOneFact: ContractFactory;
-  let typeTwoFact: ContractFactory;
-  let typeThreeFact: ContractFactory;
-  // -- Contracts
-  let proxyAdmin: Contract;
-  let registry: Contract;
-  let registryMe: Contract;
-  let typeOne: Contract;
-  let typeTwo: Contract;
-  let typeThree: Contract;
 
   this.beforeAll(async () => {
     const accounts = await ethers.getSigners();
@@ -123,14 +126,14 @@ describe("Registry", async function () {
 
     console.log(`Registry successfully deployed:
       - Registry logic address: ${await proxyAdmin.callStatic.getProxyImplementation(
-        registry.address,
-        GAS_OPT
-      )}
+      registry.address,
+      GAS_OPT
+    )}
       - Registry proxy address: ${registry.address}
       - Registry proxy's admin: ${await proxyAdmin.callStatic.getProxyAdmin(
-        registry.address,
-        GAS_OPT
-      )} \n`);
+      registry.address,
+      GAS_OPT
+    )} \n`);
 
     const initEvent = (await getEvents(
       registry,
@@ -192,7 +195,7 @@ describe("Registry", async function () {
 
   it("Should deploy type one contract", async () => {
     console.log("\n ==> Deploying type one contract...\n");
-    me = me!;
+    //me = me!;
 
     const data = typeOneFact.interface.encodeFunctionData("initialize");
     const receipt = await ((await registryMe.deployContract(
@@ -216,7 +219,7 @@ describe("Registry", async function () {
       - Logic: ${deployEvent.args?.logic}
       - Owner: ${deployEvent.args?.owner}\n`);
 
-    typeOne = new Contract(deployEvent.args?.proxy, typeOneFact.interface, me);
+    typeOne = (new Contract(deployEvent.args?.proxy, typeOneFact.interface, me) as TypeOne);
     const typeOneRecord = await registryMe.callStatic.getRecord(typeOne.address, GAS_OPT);
     console.log(`Type one Record: 
       - Proxy: ${typeOneRecord.proxy}
