@@ -13,7 +13,7 @@ import {
 } from "../scripts/Blockchain";
 import { expect } from "chai";
 import { random32Bytes, toHexVersion } from "../scripts/Utils";
-import { setTypes } from "../scripts/Registry";
+import { deployWithRegistry, setTypes } from "../scripts/Registry";
 import { keccak256, toUtf8Bytes } from "ethers/lib/utils";
 
 import { TypeOne } from "../typechain/TypeOne";
@@ -45,7 +45,7 @@ let typeThree: Contract;
 describe("Registry", async function () {
   //this.timeout
 
-  this.beforeAll(async () => {
+  before(async () => {
     const accounts = await ethers.getSigners();
     /* accounts.forEach(async (signer) => {
       console.log(await signer.getAddress());
@@ -126,14 +126,14 @@ describe("Registry", async function () {
 
     console.log(`Registry successfully deployed:
       - Registry logic address: ${await proxyAdmin.callStatic.getProxyImplementation(
-      registry.address,
-      GAS_OPT
-    )}
+        registry.address,
+        GAS_OPT
+      )}
       - Registry proxy address: ${registry.address}
       - Registry proxy's admin: ${await proxyAdmin.callStatic.getProxyAdmin(
-      registry.address,
-      GAS_OPT
-    )} \n`);
+        registry.address,
+        GAS_OPT
+      )} \n`);
 
     const initEvent = (await getEvents(
       registry,
@@ -162,7 +162,7 @@ describe("Registry", async function () {
       admin.address,
       `Event's owner not equal admin's address`
     );
-    expect((await registry.callStatic.getTypeByName("generic")).typeName).to.equal(
+    expect((await registry.callStatic.getTypeByName("generic")).name).to.equal(
       "generic",
       "Generic type not setted in initializer"
     );
@@ -195,31 +195,28 @@ describe("Registry", async function () {
 
   it("Should deploy type one contract", async () => {
     console.log("\n ==> Deploying type one contract...\n");
-    //me = me!;
 
-    const data = typeOneFact.interface.encodeFunctionData("initialize");
-    const receipt = await ((await registryMe.deployContract(
-      typeOneFact.bytecode,
-      data,
-      await random32Bytes(),
+    typeOne = (await deployWithRegistry(
+      registry,
+      "TypeOne",
+      { signer: me },
       "type-one",
-      GAS_OPT
-    )) as TransactionResponse).wait();
-    //console.log(receipt);
+      true
+    )) as TypeOne;
     const deployEvent = (await getEvents(
       registryMe,
       "Deployed",
       [null, null, me.address, null, null],
       true,
-      receipt.blockNumber,
-      receipt.blockNumber
+      await provider.getBlockNumber(),
+      await provider.getBlockNumber()
     )) as Event;
     console.log(`Type one deployed event: 
       - Proxy: ${deployEvent.args?.proxy}
       - Logic: ${deployEvent.args?.logic}
       - Owner: ${deployEvent.args?.owner}\n`);
 
-    typeOne = (new Contract(deployEvent.args?.proxy, typeOneFact.interface, me) as TypeOne);
+    //typeOne = new Contract(deployEvent.args?.proxy, typeOneFact.interface, me) as TypeOne;
     const typeOneRecord = await registryMe.callStatic.getRecord(typeOne.address, GAS_OPT);
     console.log(`Type one Record: 
       - Proxy: ${typeOneRecord.proxy}

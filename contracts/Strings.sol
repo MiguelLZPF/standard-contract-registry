@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.4.24 <0.8.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 /**
- * @dev Collection of functions related to the string type
+ * @dev String operations.
  */
 library Strings {
   /**
@@ -32,24 +32,29 @@ library Strings {
   }
 
   function toLower(string memory str) internal pure returns (string memory) {
-        bytes memory bStr = bytes(str);
-        bytes memory bLower = new bytes(bStr.length);
-        for (uint i = 0; i < bStr.length; i++) {
-            // Uppercase character...
-            if ((uint8(bStr[i]) >= 65) && (uint8(bStr[i]) <= 90)) {
-                // So we add 32 to make it lowercase
-                bLower[i] = bytes1(uint8(bStr[i]) + 32);
-            } else {
-                bLower[i] = bStr[i];
-            }
-        }
-        return string(bLower);
+    bytes memory bStr = bytes(str);
+    bytes memory bLower = new bytes(bStr.length);
+    for (uint256 i = 0; i < bStr.length; i++) {
+      // Uppercase character...
+      if ((uint8(bStr[i]) >= 65) && (uint8(bStr[i]) <= 90)) {
+        // So we add 32 to make it lowercase
+        bLower[i] = bytes1(uint8(bStr[i]) + 32);
+      } else {
+        bLower[i] = bStr[i];
+      }
     }
+    return string(bLower);
+  }
 
-  function hash(string memory _string) internal pure returns(bytes32 _hash) {
+  function hash(string memory _string) internal pure returns (bytes32 _hash) {
     return keccak256(abi.encodePacked((_string)));
   }
-  function compareStrings(string memory _a, string memory _b) internal pure returns(bool _equals) {
+
+  function compareStrings(string memory _a, string memory _b)
+    internal
+    pure
+    returns (bool _equals)
+  {
     return hash(_a) == hash(_b);
   }
 }

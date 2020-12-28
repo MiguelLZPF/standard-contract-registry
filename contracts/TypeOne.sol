@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.6.0 <0.8.0;
 
-import { OwnableUpgradeSafe as Ownable } from "./libs/access/OwnableUS.sol";
+import {
+  OwnableUpgradeable as Ownable
+} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /**
  * @title Storage
@@ -11,6 +13,7 @@ contract TypeOne is Ownable {
   uint256 number;
 
   // FUNCTIONS
+  function empty() external {}
   function initialize() external initializer {
     __Ownable_init();
   }

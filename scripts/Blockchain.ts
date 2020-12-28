@@ -143,9 +143,9 @@ export const deployUpgradeable = async (
     initParams = initParams ? initParams : [];
     let proxyAdminC: Promise<Contract>;
     // contract factories
-    const proxyAdminFact = ethers.getContractFactory("ProxyAdmin", factoryOpt);
+    const proxyAdminFact = ethers.getContractFactory("ProxyAdmin", {signer: factoryOpt.signer});
     const logicFact = ethers.getContractFactory(contractName, factoryOpt);
-    const tupFact = ethers.getContractFactory("TransparentUpgradeableProxy", factoryOpt);
+    const tupFact = ethers.getContractFactory("TransparentUpgradeableProxy", {signer: factoryOpt.signer});
     // ~ Deploy (async)
     // -- deploy logic contract
     const logic = (await logicFact).deploy();

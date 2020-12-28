@@ -1,10 +1,12 @@
 import { Contract, Event } from "ethers";
 import { isAddress, keccak256, toUtf8Bytes } from "ethers/lib/utils";
 import { ethers } from "hardhat";
+import { boolean, string } from "hardhat/internal/core/params/argumentTypes";
 import { FactoryOptions } from "hardhat/types";
 import {
   GAS_OPT,
   getEvents,
+  provider,
   TransactionReceipt,
   TransactionResponse,
 } from "./Blockchain";
@@ -24,47 +26,29 @@ export const setTypes = async (
   version?: string | string[]
 ) => {
   // get base nonce
-  const baseNonce = registry.signer.getTransactionCount();
-  let receipts: Promise<TransactionReceipt>[] = [];
+  //const baseNonce = registry.signer.getTransactionCount();
+  let receipts: TransactionReceipt[] = [];
   if (version && typeof version == "string") {
     for (let index = 0; index < types.length; index++) {
-      receipts.push(
-        setType(registry, types[index], (await baseNonce) + index, version)
-      );
+      receipts.push(await setType(registry, types[index], version));
     }
   } else if (version) {
     // must be string[]
     for (let index = 0; index < types.length; index++) {
-      receipts.push(
-        setType(
-          registry,
-          types[index],
-          (await baseNonce) + index,
-          version[index]
-        )
-      );
+      receipts.push(await setType(registry, types[index], version[index]));
     }
   } else {
     for (let index = 0; index < types.length; index++) {
-      receipts.push(setType(registry, types[index], (await baseNonce) + index));
+      receipts.push(await setType(registry, types[index]));
     }
   }
   return await Promise.all(receipts);
 };
 
-const setType = async (
-  registry: Contract,
-  type: string,
-  nonce: number,
-  version?: string
-) => {
+const setType = async (registry: Contract, type: string, version?: string) => {
   version ? version : (version = await toHexVersion("0.1"));
 
-  return await ((await registry.setType(type, version, {
-    gasLimit: "0xffffffff",
-    gasPrice: "0x00",
-    nonce: nonce,
-  })) as TransactionResponse).wait();
+  return await ((await registry.setType(type, version, GAS_OPT)) as TransactionResponse).wait();
 };
 
 /**
@@ -83,47 +67,64 @@ const setType = async (
 export const deployWithRegistryBatch = async (
   registry: Contract | string,
   contractNames: string[],
-  factOptions?: FactoryOptions[] | FactoryOptions,
+  factOptions: FactoryOptions[],
   types?: string[],
   wantContract?: boolean,
   initParams?: unknown[][]
 ) => {
   try {
-    let contracts: Promise<Contract>[] = [];
-    let factOptArray = Array<FactoryOptions>(contractNames.length);
-    if (factOptions && !(factOptions instanceof Array)) {
-      for (let index = 0; index < contractNames.length; index++) {
-        factOptArray[index] = factOptions;
+    // check parameters
+    if (
+      contractNames.length != factOptions.length ||
+      (types && types.length != contractNames.length)
+    ) {
+      throw new Error(`Lengths does not match:
+        - Contract names: ${contractNames.length}
+        - FactoryOptions: ${factOptions.length}
+        - Types: ${types?.length}`);
+    }
+    // -- make sure all have signers
+    for (let index = 0; index < factOptions.length; index++) {
+      if (!factOptions[index].signer) {
+        throw new Error(`all Factory Options must have a Signer, index: ${index} not defined`);
       }
     }
-    factOptions = factOptArray as FactoryOptions[];
+    // -- registry
+    if (typeof registry == "string") {
+      registry = await ethers.getContractAt("ContractRegistry", registry);
+    }
+    registry = registry.connect(provider);
+
+    // Main Logic
+    let contracts: Contract[] = [];
     if (wantContract || !wantContract) {
-      contractNames.forEach(async (contractName, index) => {
+      // wantContract == true || undefined
+      for (let index = 0; index < contractNames.length; index++) {
         contracts.push(
-          deployWithRegistry(
+          await (deployWithRegistry(
             registry,
-            contractName,
-            factOptions ? (factOptions as FactoryOptions[])[index] : undefined,
+            contractNames[index],
+            factOptions[index],
             types ? types[index] : undefined,
             true,
             initParams ? initParams[index] : undefined
-          ) as Promise<Contract>
+          ) as Promise<Contract>)
         );
-      });
+      }
       return await Promise.all(contracts);
     } else {
-      contractNames.forEach(async (contractName, index) => {
+      for (let index = 0; index < contractNames.length; index++) {
         contracts.push(
-          deployWithRegistry(
+          await (deployWithRegistry(
             registry,
-            contractName,
-            factOptions ? (factOptions as FactoryOptions[])[index] : undefined,
+            contractNames[index],
+            factOptions[index],
             types ? types[index] : undefined,
             false,
             initParams ? initParams[index] : undefined
-          ) as Promise<Contract>
+          ) as Promise<Contract>)
         );
-      });
+      }
     }
   } catch (error) {
     console.error(`ERROR: Cannot deploy Contracts in batch. ${error.stack}`);
@@ -144,9 +145,9 @@ export const deployWithRegistryBatch = async (
  * @return the deployed contract or nothing if wantContract == false
  */
 export const deployWithRegistry = async (
-  registry: Contract | string,
+  registry: Contract,
   contractName: string,
-  factOptions?: FactoryOptions,
+  factOptions: FactoryOptions,
   type?: string,
   wantContract?: boolean,
   initParams?: unknown[]
@@ -154,26 +155,39 @@ export const deployWithRegistry = async (
   try {
     // async
     const randBytes = random32Bytes();
-    // Check parameters
-    [registry, factOptions, type, initParams] = (await checkDeployParams(
-      registry,
-      factOptions,
-      type,
-      initParams
-    )) as [Contract, FactoryOptions, string, unknown[]];
-    const from = factOptions.signer?.getAddress();
+    // check parameters
+    if (!factOptions.signer) {
+      throw new Error("Signer needed to be provided in Factory Options");
+    }
+    // make sure the contract is connected to the correct signer
+    registry = registry.connect(factOptions.signer);
+    // -- type - can be the type name or type id
+    if (!type) {
+      type = keccak256(toUtf8Bytes("generic"));
+    } else if (type.slice(0, 2) != "0x") {
+      // is a type name
+      type = keccak256(toUtf8Bytes(type));
+    } else if (type.length != 64 + 2) {
+      // is a type id and length is not 32 bytes
+      throw new Error(
+        "type id is not valid. Must be a bytes array starting with 0x and 32 bytes length"
+      );
+    }
+    // -- initParams
+    initParams = initParams ? initParams : [];
+    // get address
+    const from = factOptions.signer.getAddress();
     // Main Logic
     const factory = await ethers.getContractFactory(contractName, factOptions);
-    const initData = factory.interface.encodeFunctionData("initialize", [
-      ...initParams,
-    ]);
-    const receipt = await registry.deployContract(
+    const initData = factory.interface.encodeFunctionData("initialize", [...initParams]);
+    console.log(`Deploying Contract ${contractName}(${initParams}) from '${await from}'`);
+    const receipt = await ((await registry.deployContract(
       factory.bytecode,
       initData,
       await randBytes,
       type,
       GAS_OPT
-    );
+    )) as TransactionResponse).wait();
 
     //get event and contract
     if (wantContract || !wantContract) {
@@ -186,69 +200,9 @@ export const deployWithRegistry = async (
         receipt.blockNumber
       )) as Event;
 
-      return await ethers.getContractAt(
-        contractName,
-        deployEvent.args!.proxy,
-        factOptions.signer
-      );
+      return await ethers.getContractAt(contractName, deployEvent.args!.proxy, factOptions.signer);
     }
   } catch (error) {
     console.error(`ERROR: Cannot deploy Contract. ${error.stack}`);
   }
-};
-/**
- * Cheks the parameters of the deployWithRegistry function
- */
-const checkDeployParams = async (
-  registry: Contract | string,
-  factOptions?: FactoryOptions,
-  type?: string,
-  initParams?: unknown[]
-) => {
-  // registry and from (related through registry.signer)
-  if (typeof registry == "string" && !isAddress(registry)) {
-    throw new Error("Invalid registry contract address");
-  } else if (typeof registry == "string") {
-    // registry is a valid address
-    if (!factOptions || !factOptions.signer) {
-      throw new Error(
-        "No signer specified in factOptions or in registry.signer"
-      );
-    } else {
-      registry = await ethers.getContractAt(
-        "ContractRegistry",
-        registry,
-        factOptions.signer
-      );
-    }
-  } else {
-    // registry is a Contract
-    if (
-      (!factOptions && !registry.signer) ||
-      !isAddress(await registry.signer.getAddress())
-    ) {
-      throw new Error(
-        "No signer specified in factOptions or in registry.signer"
-      );
-    } else if (factOptions && factOptions.signer) {
-      registry = registry.connect(factOptions.signer);
-    }
-  }
-  // here we should have a registry contract connected to a Signer to sing TXs
-  // type - can be the type name or type id
-  if (!type) {
-    type = keccak256(toUtf8Bytes("generic"));
-  } else if (type.slice(0, 2) != "0x") {
-    // is a type name
-    type = keccak256(toUtf8Bytes(type));
-  } else if (type.length != 64 + 2) {
-    // is a type id and length is not 32 bytes
-    throw new Error(
-      "type id is not valid. Must be a bytes array starting with 0x and 32 bytes length"
-    );
-  }
-  // initParams
-  initParams = initParams ? initParams : [];
-
-  return [registry, factOptions, type, initParams];
 };
