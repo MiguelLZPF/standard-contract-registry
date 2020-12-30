@@ -224,8 +224,8 @@ describe("Registry", async function () {
       - Owner: ${typeOneRecord.owner}
       - Type: ${typeOneRecord.type_}
       - Version: ${typeOneRecord.version}
-      - Date Created: ${new Date(typeOneRecord.dateCreated * 1000)}
-      - Date Updated: ${new Date(typeOneRecord.dateUpdated * 1000)}`);
+      - Date Created: ${new Date(parseInt(typeOneRecord.dateCreated._hex) * 1000)}
+      - Date Updated: ${new Date(parseInt(typeOneRecord.dateUpdated._hex) * 1000)}`);
 
     expect(await typeOne.owner()).to.equal(
       me.address,
