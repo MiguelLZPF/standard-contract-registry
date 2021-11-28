@@ -1,6 +1,14 @@
 node_modules
+.env
+coverage
+coverage.json
 
-#Hardhat files
+# Hardhat files
 cache
 artifacts
+
+# Types
 typechain
+
+# Encripted Wallets
+keystore

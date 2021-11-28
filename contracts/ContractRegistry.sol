@@ -1,394 +1,246 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity >=0.6.0 <0.8.0;
-pragma experimental ABIEncoderV2;
+//SPDX-License-Identifier: Unlicense
+pragma solidity >=0.8.0 <0.9.0;
 
-import {
-  OwnableUpgradeable as Ownable
-} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {
-  ProxyAdmin,
-  TransparentUpgradeableProxy as TUP
-} from "@openzeppelin/contracts/proxy/ProxyAdmin.sol";
-import {
-  Create2Upgradeable as Create2
-} from "@openzeppelin/contracts-upgradeable/utils/Create2Upgradeable.sol";
-import { Strings as S } from "./Strings.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { OwnableUpgradeable as Ownable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { TransparentUpgradeableProxy as TUP } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { Create2Upgradeable as Create2 } from "@openzeppelin/contracts-upgradeable/utils/Create2Upgradeable.sol";
+import { ContractRecord } from "./interfaces/IContractRegistry.sol";
 
 /**
-* @title Contract Registry
-* @author Miguel Gomez Carpena
-* @dev This Smart Contract is in charge of deploy and update upgradeable contracts
-       for an owner and keeps record of them, and their versions and so on.
+ * @title Contract Registry
+ * @author Miguel Gomez Carpena
+ * @dev This Smart Contract is in charge of keep a registry of deployed SC
+ *      for a given system. It can also deploy or upgrade them
  */
-contract ContractRegistry is Ownable {
+contract ContractRegistry is Initializable, Ownable {
   // ======
   // EVENTS
-  event Initialized(address indexed registry, address indexed owner);
-  event NewType(bytes32 indexed id, string type_, bytes2 indexed version);
-  event VersionUpdated(bytes32 indexed id, bytes2 indexed oldVersion, bytes2 indexed newVersion);
-  event TypeDeleted(bytes32 indexed id);
-  event Deployed(
-    address proxy,
-    address logic,
-    address indexed owner,
-    bytes32 indexed typeId,
-    string typeName,
-    bytes2 indexed version
-  );
-  event Upgraded(
+  event Registered(
     address indexed proxy,
-    address oldLogic,
-    address newLogic,
-    address indexed owner,
-    bytes32 indexed typeId,
-    string typeName,
-    bytes2 oldVersion,
-    bytes2 newVersion
+    bytes30 name,
+    bytes2 indexed version,
+    bytes32 indexed logicCodeHash
   );
-  event OwnerChanged(address indexed proxy, address indexed oldOwner, address indexed newOwner);
-  // =======
-  // STRUCTS
-  struct ContractType {
-    // id that will be the keccak256 of the typeName
-    bytes32 id;
-    // -- types like: manager, network, host... all lower case
-    string name;
-    // -- version like: 0x0102 == v1.2, 0xFFFF == v255.255
-    bytes2 version;
-  }
-  struct ContractRecord {
-    address proxy; // use as ID too
-    address logic;
-    address owner;
-    string type_;
-    bytes2 version;
-    uint256 dateCreated;
-    uint256 dateUpdated;
-  }
-  // Type Array
-  struct AContractType {
-    ContractType[] array;
-    // need an index to remove one item by reference (proxy address)
-    // 0 index reserved for non init. 1,2,3... N
-    //     is like ask "where are this id stored?"
-    mapping(bytes32 => uint256) index;
-  }
-  // Contract Record Array
-  struct AContractRecord {
-    ContractRecord[] array;
-    // need an index to remove one item by reference (proxy address)
-    // 0 index reserved for non init. 1,2,3... N
-    mapping(address => uint256) index;
-  }
-  // ==========
-  // PROPERTIES
-  // 1. Types and versions
-  // 1.1 Array to store all known types
-  AContractType knownTypes;
-  // 1.2 Check if string is a type
-  mapping(string => bool) public isType;
-
-  // 2. Contract Registry
-  // 2.1 Array to store all contract records with reference (proxy)
-  AContractRecord records;
-  // 2.2 Get all records of one owner
-  mapping(address => AContractRecord) recordsByOwner;
-  // 2.3 Get all records of one type id
-  mapping(string => AContractRecord) recordsByType;
-
-  // 3. Proxy admin contract
-  //    the proxy admin contract thats use to deploy and upgrade records
-  ProxyAdmin proxyAdm;
+  event Updated(
+    address indexed proxy,
+    bytes30 name,
+    bytes2 indexed version,
+    bytes32 indexed logicCodeHash
+  );
+  // ======
+  // VARIABLES
+  // Store Contract Records associated to the proxy address
+  mapping(address => ContractRecord) public contractRecords;
+  // Relation to be able to find Record by Name
+  mapping(bytes32 => address) private nameToProxy;
+  // Relation between admin and contract record names
+  mapping(address => bytes30[]) private adminRecordNames;
 
   // =========
   // FUNCTIONS
   /**
-    0. Initialize function that acts like a constructor
+  0. Initialize function that acts like a constructor
   */
-  function initialize() external initializer {
-    // initializate the owner as the msg.sender through ownable contract
+  function initialize(
+    address proxy,
+    bytes30 name,
+    bytes2 version,
+    bytes32 logicCodeHash
+  ) external initializer {
     __Ownable_init();
-    // creates a proxy admin needed to deploy and upgrade contract records
-    proxyAdm = new ProxyAdmin();
-    // define the first generic contract type
-    setType("generic", bytes2(uint16(256)));
-
-    emit Initialized(address(this), owner());
-  }
-
-  // 1. Type and versions functions
-  /**
-    1.1 Creates a new contract type
-    @param _type the name of the type to create
-    @param _version version to set the new contract type XX.YY format
-  */
-  function setType(string memory _type, bytes2 _version) public onlyOwner {
-    // all type strings should be lower case
-    _type = S.toLower(_type);
-    // can not be defined already
-    require(!isType[_type], "this type is already defined");
-
-    // create contrat type
-    bytes32 id = S.hash(_type);
-    ContractType memory newType = ContractType(id, _type, _version);
-    // store the contract type
-    knownTypes.array.push(newType);
-    // -- save the index + 1 = length
-    knownTypes.index[id] = knownTypes.array.length;
-    isType[_type] = true;
-
-    emit NewType(id, _type, _version);
-  }
-
-  /**
-    1.2 Gets a type by reference (id)
-    @param _id the name of the type to create
-    @return a ContractType by index
-  */
-  function getType(bytes32 _id) public view returns (ContractType memory) {
-    return knownTypes.array[knownTypes.index[_id] - 1];
-  }
-
-  /**
-    1.3 Gets a type from a type name
-    @param _typeName the name of the type to create
-    @return a ContractType from the hashed type name
-  */
-  function getTypeByName(string memory _typeName) public view returns (ContractType memory) {
-    bytes32 id = S.hash(_typeName);
-    return knownTypes.array[knownTypes.index[id] - 1];
-  }
-
-  /**
-    1.4 Gets all types defined
-    @return all ContractTypes
-  */
-  function getTypes() public view returns (ContractType[] memory) {
-    return knownTypes.array;
-  }
-
-  /**
-    1.5 Sets the latest version of an available contract
-    @param _typeId the reference of the contract type to be updated
-    @param _newVersion new version for the contract type
-  */
-  function setVersion(bytes32 _typeId, bytes2 _newVersion) public onlyOwner {
-    require(
-      knownTypes.index[_typeId] > 0,
-      "this type is not defined, use 'setType' function instead"
-    );
-    // get contract type from id
-    uint256 index = knownTypes.index[_typeId] - 1;
-    ContractType memory typeToUpdate = knownTypes.array[index];
-
-    require(typeToUpdate.version < _newVersion, "new version must be greater than current one");
-    emit VersionUpdated(typeToUpdate.id, typeToUpdate.version, _newVersion);
-    // set the new version to the type
-    typeToUpdate.version = _newVersion;
-    // store the new contract type
-    knownTypes.array[index] = typeToUpdate;
-  }
-
-  /**
-    1.6 Gets the version of a contract type by reference (id)
-    @param _typeId the id of the type to create
-    @return the latest contract type version by index
-  */
-  function getVersion(bytes32 _typeId) public view returns (bytes2) {
-    return knownTypes.array[knownTypes.index[_typeId] - 1].version;
-  }
-
-  /**
-    1.7 Gets the version of a contract type from a type name
-    @param _typeName the name of the type to create
-    @return the latest contract type version from the hashed type name
-  */
-  function getVersionByName(string memory _typeName) public view returns (bytes2) {
-    bytes32 typeId = S.hash(_typeName);
-    return knownTypes.array[knownTypes.index[typeId] - 1].version;
-  }
-
-  /**
-    1.8 Removes a contract type from storage
-    @param _typeId the id of the contract type to remove  
-  */
-  function removeType(bytes32 _typeId) public {
-    uint256 index = knownTypes.index[_typeId] - 1;
-    emit TypeDeleted(knownTypes.array[index].id);
-    // get last element of the array
-    ContractType memory last = knownTypes.array[knownTypes.array.length - 1];
-    // write the last element on the index of the contract type to remove
-    knownTypes.array[index] = last;
-    // update the index of the (old) last contract type
-    knownTypes.index[last.id] = index;
-    // remove duplicated last element from the array
-    knownTypes.array.pop();
-  }
-
-  /*________________________________*/
-  // 2. Contracts Registry Functions
-  /**
-    2.1 Deploy a new contract record
-    @param _bytecode bytecode of the contract to be deployed
-    @param _data the ABI encoded call to be performed after deploy
-    @param _salt used to randomize deployment
-    @param _typeId contract type name string
-  */
-  function deployContract(
-    bytes memory _bytecode,
-    bytes memory _data,
-    bytes32 _salt,
-    //uint256 _amount,
-    bytes32 _typeId
-  ) external {
-    ContractType memory type_ = getType(_typeId);
-    address logic = Create2.deploy(0, _salt, _bytecode);
-    address proxy = address(new TUP(logic, address(proxyAdm), _data));
-    // the owner is the msg.sender
-    try Ownable(proxy).transferOwnership(_msgSender()) {} catch {
-      revert("All contracts must implement 'OwnableUpgradeable' from OpenZeppelin (or similar)");
+    if (proxy == address(0)) {
+      proxy = address(this);
     }
-    emit Deployed(proxy, logic, _msgSender(), type_.id, type_.name, type_.version);
-    storeRecord(proxy, logic, type_);
+    if (name == bytes30(0)) {
+      name = bytes30("ContractRegistry");
+    }
+    _register(proxy, address(this), name, version, logicCodeHash);
   }
 
-  /**
-    2.2 Store a new contract record
-    @param _proxy address of the proxy contract
-    @param _logic address of the logic contract
-    @param _type contract type name string
-  */
-  function storeRecord(
-    address _proxy,
-    address _logic,
-    ContractType memory _type
+  // update
+  // upgrade
+
+  function register(
+    address proxy,
+    address logic,
+    bytes30 name,
+    bytes2 version,
+    bytes32 logicCodeHash
+  ) external {
+    _register(proxy, logic, name, version, logicCodeHash);
+  }
+
+  /*   function deploy(
+    bytes memory bytecode,
+    bytes memory data,
+    bytes32 salt,
+    bytes30 name,
+    bytes2 version
+  ) external {
+    require(bytecode.length > 10, "Bytecode cannot be empty");
+    bytes32 logicCodeHash = keccak256(bytecode);
+    if (salt == bytes32(0)) {
+      salt = keccak256(abi.encodePacked(bytecode, block.timestamp));
+    }
+    address logic = Create2.deploy(0, salt, bytecode);
+    address proxy = address(new TUP(logic, _msgSender(), data));
+
+    // the owner is the msg.sender. May or may not be ownable
+    try Ownable(proxy).transferOwnership(_msgSender()) {} catch {}
+
+    _register(proxy, logic, name, version, logicCodeHash);
+  } */
+
+  function update(
+    address proxy,
+    address logic,
+    bytes2 version,
+    bytes32 logicCodeHash
+  ) external {
+    _update(proxy, logic, version, logicCodeHash);
+  }
+
+  /* function upgrade(
+    address payable proxy,
+    bytes memory bytecode,
+    bytes memory data,
+    bytes32 salt,
+    bytes2 version
+  ) external {
+    // Parameter checks
+    require(bytecode.length > 10, "Bytecode cannot be empty");
+    bytes32 logicCodeHash = keccak256(bytecode);
+    if (salt == bytes32(0)) {
+      salt = keccak256(abi.encodePacked(bytecode, block.timestamp));
+    }
+    address logic = Create2.deploy(0, salt, bytecode);
+    if (keccak256(data) != keccak256(new bytes(0))) {
+      TUP(proxy).upgradeToAndCall(logic, data);
+    } else {
+      TUP(proxy).upgradeTo(logic);
+    }
+
+    // return admin rigths
+    TUP(proxy).changeAdmin(logic);
+    // the owner is the msg.sender. May or may not be ownable
+    try Ownable(proxy).transferOwnership(_msgSender()) {} catch {}
+
+    _update(proxy, logic, version, logicCodeHash);
+  } */
+
+  function changeRegisteredAdmin(bytes30 name, address newAdmin) external {
+    ContractRecord storage record = contractRecords[nameToProxy[keccak256(abi.encodePacked(name))]];
+    // check if msg.sender is the admin who registred it
+    require(record.admin == _msgSender(), "You are not the owner");
+    record.admin = newAdmin;
+  }
+
+  function getRecord(address proxy)
+    external
+    view
+    returns (bool found, ContractRecord memory record)
+  {
+    return _getRecord(proxy);
+  }
+
+  function getByName(bytes30 name)
+    external
+    view
+    returns (bool found, ContractRecord memory record)
+  {
+    return _getRecord(nameToProxy[keccak256(abi.encodePacked(name))]);
+  }
+
+  function getAdminContracts() external view returns (bytes30[] memory contractNames) {
+    return _getContracts(owner());
+  }
+
+  function getMyContracts() external view returns (bytes30[] memory contractNames) {
+    return _getContracts(_msgSender());
+  }
+
+  function _register(
+    address proxy,
+    address logic,
+    bytes30 name,
+    bytes2 version,
+    bytes32 logicCodeHash
   ) internal {
-    // checks
-    require(isType[_type.name], "Contract type parameter does not exist");
-    // create the record
-    ContractRecord memory record =
-      ContractRecord(
-        _proxy,
-        _logic,
-        _msgSender(), // owner
-        _type.name,
-        _type.version,
-        block.timestamp,
-        block.timestamp
-      );
-    // store the record
-    records.array.push(record);
-    // -- save the index + 1 = length
-    records.index[_proxy] = records.array.length;
-    recordsByOwner[record.owner].array.push(record);
-    recordsByOwner[record.owner].index[_proxy] = recordsByOwner[record.owner].array.length;
-    recordsByType[record.type_].array.push(record);
-    recordsByType[record.type_].index[_proxy] = recordsByType[record.type_].array.length;
-  }
-
-  /**
-    2.3 Upgrade a contract record
-    @param _proxy address of the proxy contract
-    @param _bytecode bytecode of the contract to be updated
-    @param _salt used to randomize deployment
-  */
-  function upgradeContract(
-    address payable _proxy,
-    bytes calldata _bytecode,
-    bytes32 _salt
-  ) external fromOwnerOf(_proxy) {
-    // get the contract record
-    uint256 index = records.index[_proxy] - 1;
-    ContractRecord memory record = records.array[index];
-    // check if contract needs to be upgraded
-    bytes2 oldVersion = record.version;
-    bytes2 currentVer = getVersionByName(record.type_);
-    require(oldVersion < currentVer, "this contract is already upgraded to the latest version");
-    // save old version for event
-    address oldLogic = record.logic;
-
-    // deploys new logic contract
-    address logic = Create2.deploy(0, _salt, _bytecode);
-    // use the same proxy with new logic
-    TUP proxy = TUP(_proxy);
-    proxyAdm.upgrade(proxy, logic);
-    // check that the proxy points to the right logic
-    record.logic = proxyAdm.getProxyImplementation(proxy);
-    require(record.logic != oldLogic, "upgrade went wrong logic addresses cannot be the same");
-    // update contract record
-    record.version = currentVer;
-    record.owner = Ownable(_proxy).owner();
-    record.dateUpdated = block.timestamp;
-    // save updated contract record
-    records.array[index] = record;
-    // use index to avoid "stack too deep"
-    index = recordsByOwner[record.owner].index[_proxy] - 1;
-    recordsByOwner[record.owner].array[index] = record;
-    index = recordsByType[record.type_].index[_proxy] - 1;
-    recordsByType[record.type_].array[index] = record;
-
-    emit Upgraded(
-      record.proxy,
-      oldLogic,
-      record.logic,
-      record.owner,
-      S.hash(record.type_),
-      record.type_,
-      oldVersion,
-      record.version
-    );
-  }
-
-  /**
-    2.4 Transfer ownership and update contract record
-    @param _proxy address of the proxy contract to update
-    @param _newOwner address of the new owner
-  */
-  function transferOwner(address _proxy, address _newOwner) public {
-    // transferOwnership using owner contract
-    Ownable(_proxy).transferOwnership(_newOwner);
-    // use the implemented function to update the record
-    updateRecordOwner(_proxy);
-  }
-
-  /**
-    2.5 Updates an already changed owner from a contract record
-    @param _proxy address of the proxy contract to update
-  */
-  function updateRecordOwner(address _proxy) public {
-    require(records.index[_proxy] > 0, "This contract has not been registered yet");
-    // get the contract record
-    uint256 index = records.index[_proxy] - 1;
-    ContractRecord memory record = records.array[index];
-    address oldOwner = record.owner;
-    // update contract record
-    record.owner = Ownable(_proxy).owner();
-    // save updated contract record
-    records.array[index] = record;
-    index = recordsByOwner[record.owner].index[_proxy] - 1;
-    recordsByOwner[record.owner].array[index] = record;
-    index = recordsByType[record.type_].index[_proxy] - 1;
-    recordsByType[record.type_].array[index] = record;
-    emit OwnerChanged(record.proxy, oldOwner, record.owner);
-  }
-
-  /**
-    2.4 Gets a contract record
-    @param _proxy address of the proxy contract
-    @return 
-  */
-  function getRecord(address _proxy) public view returns (ContractRecord memory) {
-    return records.array[records.index[_proxy] - 1];
-  }
-
-  // MODIFIERS
-  // Only from contract owners
-  modifier fromOwnerOf(address _proxy) {
-    address contractOwner = Ownable(_proxy).owner();
+    // Parameter checks
+    require(proxy != address(0), "Proxy address is nedded");
+    // regular deployment proxy = logic
+    if (logic == address(0)) {
+      logic = proxy;
+    }
+    bytes32 nameHash = keccak256(abi.encodePacked(name));
     require(
-      _msgSender() == contractOwner,
-      "Only contract's owner is able to upgrade this contract"
+      name == bytes30(0) || nameToProxy[nameHash] == address(0),
+      "Name must be unique or null"
     );
-    _;
+    // Other checks
+    ContractRecord storage record = contractRecords[proxy];
+    require(record.rat == 0, "Contract already registered");
+
+    // Register in storage
+    record.proxy = proxy;
+    record.logic = logic;
+    record.admin = _msgSender();
+    record.name = name;
+    record.version = version;
+    record.logicCodeHash = logicCodeHash;
+    record.rat = block.timestamp;
+    record.uat = block.timestamp;
+    // Store proxy by name
+    nameToProxy[nameHash] = proxy;
+    // store admin's name list
+    adminRecordNames[record.admin].push(name);
+    // events
+    emit Registered(record.proxy, record.name, record.version, record.logicCodeHash);
+  }
+
+  function _update(
+    address proxy,
+    address logic,
+    bytes2 version,
+    bytes32 logicCodeHash
+  ) internal {
+    // Parameter checks
+    require(proxy != address(0), "Proxy address is nedded");
+    ContractRecord storage record = contractRecords[proxy];
+    // Other checks
+    // -- check if registered
+    require(record.rat != 0, "Contract not registered");
+    // -- check if diferent logic address
+    require(record.logic != logic, "Logic already updated");
+    require(record.logicCodeHash != logicCodeHash, "Logic already updated");
+    // -- check if msg.sender is the admin how registred it
+    require(record.admin == _msgSender(), "You are not the admin");
+
+    // Update in storage
+    record.logic = logic;
+    record.version = version;
+    record.logicCodeHash = logicCodeHash;
+    record.uat = block.timestamp;
+    // events
+    emit Updated(record.proxy, record.name, record.version, record.logicCodeHash);
+  }
+
+  function _getRecord(address proxy)
+    internal
+    view
+    returns (bool found, ContractRecord memory record)
+  {
+    record = contractRecords[proxy];
+    if (record.rat == 0) {
+      found = false;
+    } else {
+      found = true;
+    }
+    return (found, record);
+  }
+
+  function _getContracts(address from) internal view returns (bytes30[] memory contractNames) {
+    return adminRecordNames[from];
   }
 }

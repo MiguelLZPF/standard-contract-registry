@@ -1,22 +1,12 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity >=0.6.0 <0.8.0;
-
-import {
-  OwnableUpgradeable as Ownable
-} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.8.0 <0.9.0;
 
 /**
  * @title Storage
  * @dev Store & retrieve value in a variable
  */
-contract TypeOne is Ownable {
-  uint256 number;
-
-  // FUNCTIONS
-  function empty() external {}
-  function initialize() external initializer {
-    __Ownable_init();
-  }
+contract Storage {
+  uint256 private number;
 
   /**
    * @dev Store value in variable
