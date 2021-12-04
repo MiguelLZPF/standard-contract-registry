@@ -5,7 +5,7 @@ pragma solidity >=0.8.0 <0.9.0;
  * @title Storage
  * @dev Store & retrieve value in a variable
  */
-contract Storage {
+contract ExampleStorage {
   uint256 private number;
 
   /**

@@ -4,6 +4,7 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import { ethers } from "hardhat";
+import { task } from "hardhat/config";
 
 // gas default options
 export const GAS_OPT = {
@@ -34,3 +35,8 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+
+
+export const deploy = async () => {
+  
+}

@@ -1,24 +1,44 @@
 import * as dotenv from "dotenv";
 
-import { HardhatUserConfig, task } from "hardhat/config";
+import { HardhatUserConfig, task, types } from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-contract-sizer";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+import { generateAccounts } from "./scripts/accounts";
 
 dotenv.config();
 
-// This is a sample Hardhat task. To learn how to create your own go to
+//! TASKS
 // https://hardhat.org/guides/create-task.html
-task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
-  const accounts = await hre.ethers.getSigners();
-
-  for (const account of accounts) {
-    console.log(account.address);
-  }
-});
+task("generate-accounts", "Generates all wallets needed for test etc")
+  .addOptionalParam("adminPassword", "Admin wallet password", undefined, types.string)
+  .addOptionalParam("adminEntropy", "Admin wallet entropy [Buffer]", undefined, types.string)
+  .addOptionalParam(
+    "adminPrivKey",
+    "Private key to generate wallet from. Hexadecimal String format",
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    "adminMnemonic",
+    "Mnemonic phrase to generate admin wallet from",
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    "userNumber",
+    "Number of user wallets to be generated for testing purposes",
+    undefined,
+    types.int
+  )
+  .addOptionalParam("testPassword", "Test wallets password", undefined, types.string)
+  .addOptionalParam("testEntropy", "Test wallets entropy", undefined, types.string)
+  .setAction(async ({adminPassword}) => {
+    await generateAccounts(adminPassword);
+  });
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -29,8 +49,8 @@ const config: HardhatUserConfig = {
     hardhat: {
       blockGasLimit: 0x23c3ffff,
       gasPrice: 0,
-      hardfork: "istanbul"
-    }
+      hardfork: "istanbul",
+    },
   },
   contractSizer: {
     runOnCompile: true,

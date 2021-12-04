@@ -168,14 +168,14 @@ contract ContractRegistry is Initializable, Ownable {
     bytes32 logicCodeHash
   ) internal {
     // Parameter checks
-    require(proxy != address(0), "Proxy address is nedded");
+    require(logic != address(0), "Logic address is nedded");
     // regular deployment proxy = logic
-    if (logic == address(0)) {
-      logic = proxy;
+    if (proxy == address(0)) {
+      proxy = logic;
     }
     bytes32 nameHash = keccak256(abi.encodePacked(name));
     require(
-      name == bytes30(0) || nameToProxy[nameHash] == address(0),
+      name != bytes30(0) && nameToProxy[nameHash] == address(0),
       "Name must be unique or null"
     );
     // Other checks
@@ -206,7 +206,11 @@ contract ContractRegistry is Initializable, Ownable {
     bytes32 logicCodeHash
   ) internal {
     // Parameter checks
-    require(proxy != address(0), "Proxy address is nedded");
+    require(logic != address(0), "Logic address is nedded");
+    // regular deployment proxy = logic
+    if (proxy == address(0)) {
+      proxy = logic;
+    }
     ContractRecord storage record = contractRecords[proxy];
     // Other checks
     // -- check if registered
