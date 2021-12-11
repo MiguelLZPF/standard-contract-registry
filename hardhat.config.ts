@@ -9,7 +9,6 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 import { generateWallet, generateWalletBatch } from "./scripts/wallets";
 import { Wallet } from "@ethersproject/wallet";
-import { defaultPath, HDNode } from "@ethersproject/hdnode";
 import { deploy, deployUpgradeable, upgrade } from "./scripts/deploy";
 import { setGHRE } from "./scripts/utils";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
@@ -91,20 +90,27 @@ task("deploy", "Deploy smart contracts on '--network'")
     undefined,
     types.string
   )
+  .addOptionalParam(
+    "args",
+    "Contract initialize function's arguments if any",
+    undefined,
+    types.json
+  )
   .setAction(
     async (
-      { upgradeable, contractName, relativePath, password, proxyAdmin },
+      { upgradeable, contractName, relativePath, password, proxyAdmin, args },
       hre: HardhatRuntimeEnvironment
     ) => {
+      args = args ? args : [];
       const signer = Wallet.fromEncryptedJsonSync(
         await fs.readFile(process.env.KEYSTORE_ROOT!.concat(relativePath)),
         password
       ).connect(hre.ethers.provider);
       setGHRE(hre);
       if (upgradeable) {
-        await deployUpgradeable(contractName, signer, [], proxyAdmin);
+        await deployUpgradeable(contractName, signer, args, proxyAdmin);
       } else {
-        await deploy(contractName, signer, []);
+        await deploy(contractName, signer, args);
       }
     }
   );
@@ -125,27 +131,42 @@ task("upgrade", "Upgrade smart contracts on '--network'")
   .addParam("password", "Password to decrypt the wallet")
   .addOptionalParam("proxy", "Address of the TUP proxy", undefined, types.string)
   .addOptionalParam("proxyAdmin", "Address of a deloyed Proxy Admin", undefined, types.string)
-  .addOptionalParam("args", "Contract initialize function's arguments if any", undefined)
+  .addOptionalParam(
+    "args",
+    "Contract initialize function's arguments if any",
+    undefined,
+    types.json
+  )
   .setAction(
     async (
-      { contractName, relativePath, password, proxy, proxyAdmin },
+      { contractName, relativePath, password, proxy, proxyAdmin, args },
       hre: HardhatRuntimeEnvironment
     ) => {
+      args = args ? args : [];
       const signer = Wallet.fromEncryptedJsonSync(
         await fs.readFile(process.env.KEYSTORE_ROOT!.concat(relativePath)),
         password
       ).connect(hre.ethers.provider);
       setGHRE(hre);
-      await upgrade(contractName, signer, [], proxy, proxyAdmin);
+      await upgrade(contractName, signer, args, proxy, proxyAdmin);
     }
   );
 
-task("quick-test", "Random quick testing function", async (taskArgs, hre) => {
-  // do anything here and test it quickly
-});
+task("quick-test", "Random quick testing function")
+  .addOptionalParam(
+    "args",
+    "Contract initialize function's arguments if any",
+    undefined,
+    types.json
+  )
+  .setAction(async ({ args }, hre: HardhatRuntimeEnvironment) => {
+    // example: npx hardhat quick-test --args '[12, "hello"]'
+    console.log("RAW Args: ", args, typeof args, args[0]);
+  });
+
+//! Config
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
-
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.10",
@@ -183,5 +204,4 @@ const config: HardhatUserConfig = {
     externalArtifacts: ["@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol"],
   },
 };
-
 export default config;
