@@ -1,15 +1,8 @@
 import { isAddress } from "@ethersproject/address";
 import { Wallet } from "@ethersproject/wallet";
-import { expect, should } from "chai";
+import { expect } from "chai";
 import { step } from "mocha-steps";
 import { ethers } from "hardhat";
-import {
-  ADMIN_WALL_PASS,
-  KEYSTORE_ADMIN,
-  KEYSTORE_TEST,
-  TEST_WALL_PASS,
-  USER_NUMBER,
-} from "../scripts/accounts";
 import * as fs from "async-file";
 import { GAS_OPT } from "../scripts/deploy";
 import {
@@ -20,9 +13,7 @@ import {
 } from "../typechain";
 import { keccak256 } from "@ethersproject/keccak256";
 import { randomBytes } from "crypto";
-import { concat, zeroPad } from "@ethersproject/bytes";
 import { stringToBytesFixed } from "../scripts/utils";
-import { string } from "hardhat/internal/core/params/argumentTypes";
 
 // Specific Constants
 // -- revert Messages
@@ -58,39 +49,16 @@ let contractRegistry: ContractRegistry;
 let exampleStorage: ExampleStorage;
 
 describe("Contract Registry - Deploy and Initialization", async function () {
-  before("Check initial wallets", async () => {
+  before("Create random test wallets", async () => {
     try {
-      admin = Wallet.fromEncryptedJsonSync(
-        await fs.readFile(KEYSTORE_ADMIN),
-        ADMIN_WALL_PASS
-      ).connect(ethers.provider);
-      let usersP = [];
-      for (let u = 0; u < USER_NUMBER; u++) {
-        // insert "0" if less than 10
-        if (u < 10) {
-          usersP.push(
-            Wallet.fromEncryptedJson(
-              await fs.readFile(`${KEYSTORE_TEST}/user_0${u}.json`),
-              TEST_WALL_PASS
-            )
-          );
-        } else {
-          usersP.push(
-            Wallet.fromEncryptedJson(
-              await fs.readFile(`${KEYSTORE_TEST}/user_${u}.json`),
-              TEST_WALL_PASS
-            )
-          );
-        }
-      }
-      for (const userP of usersP) {
-        users.push((await userP).connect(ethers.provider));
+      admin = Wallet.createRandom();
+      for (let u = 0; u < +process.env.TEST_USER_NUMBER!; u++) {
+        users[u] = Wallet.createRandom();
       }
     } catch (error) {
       throw new Error(`Error creating or reading wallets from keystore. ${error}`);
     }
   });
-
   step("Should deploy contract registry", async () => {
     contractRegistry = await (
       await new ContractRegistry__factory(admin).deploy(GAS_OPT)
