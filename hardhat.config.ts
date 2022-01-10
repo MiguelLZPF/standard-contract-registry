@@ -1,4 +1,4 @@
-import * as dotenv from "dotenv";
+import { ENV } from "./process.env";
 import * as fs from "async-file";
 import { HardhatUserConfig, subtask, task, types } from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
@@ -13,16 +13,14 @@ import { deploy, deployUpgradeable, upgrade } from "./scripts/deploy";
 import { setGHRE } from "./scripts/utils";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-dotenv.config();
-
 //! TASKS
-//* Generate Wallets
+//* Hardware Wallets
 // https://hardhat.org/guides/create-task.html
-task("generate-wallets", "Generates wallets needed for test etc")
+task("generate-wallets", "Generates hardware persistent wallets")
   .addPositionalParam("type", "Type of generation [single, batch]", "single", types.string)
   .addParam(
     "relativePath",
-    "Path relative to KEYSTORE_ROOT to store the wallets",
+    "Path relative to PATH_KEYSTORE_ROOT to store the wallets",
     undefined,
     types.string
   )
@@ -30,14 +28,14 @@ task("generate-wallets", "Generates wallets needed for test etc")
   .addOptionalParam("entropy", "Wallet entropy", undefined, types.string)
   .addOptionalParam(
     "privateKey",
-    "Private key to generate wallet from. Hexadecimal String format",
+    "Private key to generate wallet from. Hexadecimal String format expected",
     undefined,
     types.string
   )
   .addOptionalParam("mnemonic", "Mnemonic phrase to generate wallet from", undefined, types.string)
   .addOptionalParam(
     "batchSize",
-    "Number of user wallets to be generated for testing purposes",
+    "Number of user wallets to be generated in batch",
     undefined,
     types.int
   )
@@ -46,19 +44,41 @@ task("generate-wallets", "Generates wallets needed for test etc")
     if (taskArgs.type.toLowerCase() == "batch") {
       await generateWalletBatch(
         taskArgs.relativePath!,
-        taskArgs.password!,
+        taskArgs.password,
         taskArgs.batchSize,
         taskArgs.entropy ? Buffer.from(taskArgs.entropy) : undefined
       );
     } else {
       await generateWallet(
         taskArgs.relativePath!,
-        taskArgs.password!,
+        taskArgs.password,
         taskArgs.entropy ? Buffer.from(taskArgs.entropy) : undefined,
         taskArgs.privateKey,
         taskArgs.mnemonic
       );
     }
+  });
+
+task("get-wallet-info", "Recover all information from an encrypted wallet")
+  .addPositionalParam("path", "Full path where the encrypted wallet is located")
+  .addOptionalPositionalParam("password", "Password to decrypt the wallet")
+  .addFlag("showPrivate", "set to true if you want to show the private key and mnemonic phrase")
+  .setAction(async ({ path, password, showPrivate }) => {
+    password = password ? password : ENV.WALLET.DEFAULT.PASSWORD;
+    const wallet = Wallet.fromEncryptedJsonSync(await fs.readFile(path), password);
+    let privateKey = wallet.privateKey;
+    let mnemonic = wallet.mnemonic.phrase;
+    if (showPrivate != true) {
+      privateKey = "***********";
+      mnemonic = "***********";
+    }
+    console.log(`
+    Wallet information:
+      - Address: ${wallet.address},
+      - Public Key: ${wallet.publicKey},
+      - Private Key: ${privateKey},
+      - Mnemonic: ${mnemonic}
+    `);
   });
 
 task("get-mnemonic", "Recover mnemonic phrase from an encrypted wallet")
@@ -103,7 +123,7 @@ task("deploy", "Deploy smart contracts on '--network'")
     ) => {
       args = args ? args : [];
       const signer = Wallet.fromEncryptedJsonSync(
-        await fs.readFile(process.env.KEYSTORE_ROOT!.concat(relativePath)),
+        await fs.readFile(ENV.PATH.KEYSTORE_ROOT!.concat(relativePath)),
         password
       ).connect(hre.ethers.provider);
       setGHRE(hre);
@@ -144,7 +164,7 @@ task("upgrade", "Upgrade smart contracts on '--network'")
     ) => {
       args = args ? args : [];
       const signer = Wallet.fromEncryptedJsonSync(
-        await fs.readFile(process.env.KEYSTORE_ROOT!.concat(relativePath)),
+        await fs.readFile(ENV.PATH.KEYSTORE_ROOT.concat(relativePath)),
         password
       ).connect(hre.ethers.provider);
       setGHRE(hre);
@@ -162,6 +182,7 @@ task("quick-test", "Random quick testing function")
   .setAction(async ({ args }, hre: HardhatRuntimeEnvironment) => {
     // example: npx hardhat quick-test --args '[12, "hello"]'
     console.log("RAW Args: ", args, typeof args, args[0]);
+    console.log(ENV.WALLET.DEFAULT.PASSWORD);
   });
 
 //! Config
@@ -175,7 +196,7 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 200,
       },
-      evmVersion: "istanbul",
+      evmVersion: ENV.NETWORK.DEFAULT.EVM,
     },
   },
   networks: {
@@ -183,14 +204,14 @@ const config: HardhatUserConfig = {
       chainId: 69,
       blockGasLimit: 0x23c3ffff,
       gasPrice: 0,
-      hardfork: "istanbul",
+      hardfork: ENV.NETWORK.DEFAULT.EVM,
     },
     ganache: {
-      url: "http://127.0.0.1:8545",
-      chainId: 1337,
+      url: ENV.NETWORK.GANACHE.URL,
+      chainId: ENV.NETWORK.GANACHE.CHAINID,
       blockGasLimit: 600047615,
       gasPrice: 0,
-      hardfork: "istanbul",
+      hardfork: ENV.NETWORK.DEFAULT.EVM,
     },
   },
   contractSizer: {

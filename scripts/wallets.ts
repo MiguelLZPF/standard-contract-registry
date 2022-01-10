@@ -1,21 +1,29 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// When running the script with `npx hardhat run <script>` you'll find the Hardhat
-// Runtime Environment's members available in the global scope.
 import * as fs from "async-file";
+import { ENV } from "../process.env";
 import { Wallet } from "@ethersproject/wallet";
+import { checkDirectoriesInPath } from "./utils";
 
+/**
+ * Generate a new wallet and store it encryped in the given path using password
+ * @param relativePath path relative to the KEYSTORE_ROOT constant (ENV)
+ * @param password optional password to encrypt json wallet file. If not provided, uses DEF_WALLET_PASS constant
+ * @param entropy optional entropy for new generated wallet files
+ * @param batchSize optional param to specify the number of wallets to generate
+ * @returns returns the decryped wallet object
+ */
 export const generateWalletBatch = async (
   relativePath: string,
-  password: string,
+  password?: string,
   batchSize?: number,
   entropy?: Buffer
 ) => {
-  // parameter assignment
-  relativePath = relativePath ? relativePath : "";
-  batchSize = batchSize ? batchSize : +process.env.DEF_WALLET_BATCH_SIZE!;
-  password = password ? password : process.env.DEF_WALLET_PASS!;
+  // Parameter assignment
+  batchSize = batchSize ? batchSize : ENV.WALLET.DEFAULT.BATCH_SIZE;
+  // add "/" if comes without it
+  relativePath = relativePath[0] != "/" ? "/".concat(relativePath) : relativePath;
+  // full path relative to project root. example: keystore/relativePath"
+  const path = ENV.PATH.KEYSTORE_ROOT.concat(relativePath);
+  await checkDirectoriesInPath(path);
   // generate if not exists
   let wallets: Promise<Wallet>[] = [];
   for (let u = 0; u < batchSize; u++) {
@@ -30,16 +38,33 @@ export const generateWalletBatch = async (
   return await Promise.all(wallets);
 };
 
+/**
+ * Generate a new wallet and store it encryped in the given path using password
+ * @param relativePath path relative to the KEYSTORE_ROOT constant (ENV)
+ * @param password optional password to encrypt json wallet file. If not provided, uses DEF_WALLET_PASS constant
+ * @param entropy optional entropy for new generated wallet files
+ * @param privateKey if provided uses this private key to generate wallet file
+ * @param mnemonic if provided uses this mnemonic phrase to generate wallet file
+ * @returns returns the decryped wallet object
+ */
 export const generateWallet = async (
   relativePath: string,
-  password: string,
+  password?: string,
   entropy?: Buffer,
   privateKey?: string,
   mnemonic?: string
 ) => {
-  const path = process.env.KEYSTORE_ROOT!.concat(relativePath);
-  password = password ? password : process.env.DEF_WALLET_PASS!;
-  const checking = checKeystoreDir();
+  // add "/" if comes without it
+  relativePath = relativePath[0] != "/" ? "/".concat(relativePath) : relativePath;
+  // full path relative to project root. example: keystore/relativePath"
+  const path = ENV.PATH.KEYSTORE_ROOT.concat(relativePath);
+  const checking = checkDirectoriesInPath(path);
+  // get passwordfrom param or default
+  if (!password) {
+    password = ENV.WALLET.DEFAULT.PASSWORD;
+    console.warn("WARN: No password specified, using default password");
+  }
+
   let wallet: Wallet;
   if (privateKey) {
     wallet = new Wallet(privateKey);
@@ -53,11 +78,4 @@ export const generateWallet = async (
   await fs.writeFile(path, encWallet);
   console.log(`New Wallet created and stored with address: ${wallet.address} as ${path}`);
   return wallet;
-};
-
-const checKeystoreDir = async () => {
-  // make directory ./keystore if needed
-  if (!(await fs.exists(process.env.KEYSTORE_ROOT!))) {
-    await fs.mkdir(process.env.KEYSTORE_ROOT!);
-  }
 };

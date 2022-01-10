@@ -1,36 +1,31 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// When running the script with `npx hardhat run <script>` you'll find the Hardhat
-// Runtime Environment's members available in the global scope.
-import { Signer } from "@ethersproject/abstract-signer";
-import { ghre } from "./utils";
 import * as fs from "async-file";
-import { INetworkDeployment, IRegularDeployment, IUpgradeDeployment } from "../models/Deploy";
+import { ENV } from "../process.env";
+import { GAS_OPT, ghre } from "./utils";
 import { isAddress, keccak256 } from "ethers/lib/utils";
+import { TransactionReceipt } from "@ethersproject/providers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Contract } from "ethers";
+import { Signer } from "@ethersproject/abstract-signer";
+import { INetworkDeployment, IRegularDeployment, IUpgradeDeployment, networks } from "../models/Deploy";
 import {
   ProxyAdmin,
   ProxyAdmin__factory,
   TransparentUpgradeableProxy__factory as TUP__factory,
 } from "../typechain-types";
-import { TransactionReceipt } from "@ethersproject/providers";
 
-// gas default options
-export const GAS_OPT = {
-  gasLimit: "0x23c3ffff", //"0xffffffff",
-  gasPrice: "0x00",
-};
-const PROXY_ADMIN_NAME = process.env.PROXY_ADMIN_NAME ? process.env.PROXY_ADMIN_NAME : "ProxyAdmin";
-
+/**
+ * Performs a regular deployment and updates the deployment information in deployments JSON file
+ * @param contractName name of the contract to be deployed
+ * @param deployer signer used to sign deploy transacciation
+ * @param args arguments to use in the constructor
+ */
 export const deploy = async (contractName: string, deployer: Signer, args: unknown[]) => {
   const ethers = ghre.ethers;
   const factory = await ethers.getContractFactory(contractName, deployer);
   const contract = await (await factory.deploy(...args, GAS_OPT)).deployed();
   console.log(`
     Regular contract deployed:
-      - Address: ${contract.logic}
+      - Address: ${contract.address}
       - Arguments: ${args}
   `);
   await saveDeployment({
@@ -42,6 +37,13 @@ export const deploy = async (contractName: string, deployer: Signer, args: unkno
   } as IRegularDeployment);
 };
 
+/**
+ * Performs an upgradeable deployment and updates the deployment information in deployments JSON file
+ * @param contractName name of the contract to be deployed
+ * @param deployer signer used to sign deploy transacciation
+ * @param args arguments to use in the initializer
+ * @param proxyAdmin (optional ? PROXY_ADMIN_ADDRESS) custom proxy admin address
+ */
 export const deployUpgradeable = async (
   contractName: string,
   deployer: Signer,
@@ -53,13 +55,17 @@ export const deployUpgradeable = async (
   // save or update Proxy Admin in deployments
   let adminDeployment: Promise<IRegularDeployment | undefined> | IRegularDeployment | undefined;
   if (proxyAdmin && typeof proxyAdmin == "string" && isAddress(proxyAdmin)) {
-    proxyAdmin = (await ethers.getContractAt(PROXY_ADMIN_NAME, proxyAdmin, deployer)) as ProxyAdmin;
+    proxyAdmin = (await ethers.getContractAt(
+      ENV.DEPLOY.PROXY_ADMIN.NAME,
+      proxyAdmin,
+      deployer
+    )) as ProxyAdmin;
   } else if (proxyAdmin && typeof proxyAdmin == "string") {
     throw new Error("String provided as Proxy Admin's address is not an address");
-  } else if (!proxyAdmin && process.env.PROXY_ADMIN_ADDRESS) {
+  } else if (!proxyAdmin && ENV.DEPLOY.PROXY_ADMIN.ADDRESS) {
     proxyAdmin = (await ethers.getContractAt(
-      PROXY_ADMIN_NAME,
-      process.env.PROXY_ADMIN_ADDRESS,
+      ENV.DEPLOY.PROXY_ADMIN.NAME,
+      ENV.DEPLOY.PROXY_ADMIN.ADDRESS,
       deployer
     )) as ProxyAdmin;
   } else if (!proxyAdmin) {
@@ -68,7 +74,7 @@ export const deployUpgradeable = async (
     proxyAdmin = await (await new ProxyAdmin__factory(deployer).deploy(GAS_OPT)).deployed();
     adminDeployment = {
       address: proxyAdmin.address,
-      contractName: PROXY_ADMIN_NAME,
+      contractName: ENV.DEPLOY.PROXY_ADMIN.NAME,
       deployTimestamp: await getContractTimestamp(proxyAdmin),
       deployTxHash: proxyAdmin.deployTransaction.hash,
       byteCodeHash: keccak256(ProxyAdmin__factory.bytecode),
@@ -119,12 +125,20 @@ export const deployUpgradeable = async (
       ? await adminDeployment
       : {
           address: proxyAdmin.address,
-          contractName: PROXY_ADMIN_NAME,
+          contractName: ENV.DEPLOY.PROXY_ADMIN.NAME,
           byteCodeHash: keccak256(ProxyAdmin__factory.bytecode),
         }
   );
 };
 
+/**
+ * Upgrades the logic Contract of an upgradeable deployment and updates the deployment information in deployments JSON file
+ * @param contractName name of the contract to be upgraded
+ * @param deployer signer used to sign transacciations
+ * @param args arguments to use in the initializer
+ * @param proxy (optional ? undefined) address to identifie multiple contracts with the same name and network
+ * @param proxyAdmin (optional ? PROXY_ADMIN_ADDRESS) custom proxy admin address
+ */
 export const upgrade = async (
   contractName: string,
   deployer: Signer,
@@ -139,7 +153,11 @@ export const upgrade = async (
   //* Proxy Admin
   if (proxyAdmin && typeof proxyAdmin == "string" && isAddress(proxyAdmin)) {
     // use given address as ProxyAdmin
-    proxyAdmin = (await ethers.getContractAt(PROXY_ADMIN_NAME, proxyAdmin, deployer)) as ProxyAdmin;
+    proxyAdmin = (await ethers.getContractAt(
+      ENV.DEPLOY.PROXY_ADMIN.NAME,
+      proxyAdmin,
+      deployer
+    )) as ProxyAdmin;
   } else if (proxyAdmin && typeof proxyAdmin == "string" /*  && !isAddress(proxyAdmin) */) {
     // given a proxy admin but is not an address nor a ProxyAdmin
     throw new Error("String provided as Proxy Admin's address is not an address");
@@ -150,8 +168,8 @@ export const upgrade = async (
     // no proxy admin provided
     const contractDeployment = (await contractDeploymentP) as IUpgradeDeployment;
     proxyAdmin = (await ethers.getContractAt(
-      PROXY_ADMIN_NAME,
-      contractDeployment.admin ? contractDeployment.admin : process.env.PROXY_ADMIN_ADDRESS!,
+      ENV.DEPLOY.PROXY_ADMIN.NAME,
+      contractDeployment.admin ? contractDeployment.admin : ENV.DEPLOY.PROXY_ADMIN.ADDRESS!,
       deployer
     )) as ProxyAdmin;
   }
@@ -197,6 +215,11 @@ export const upgrade = async (
   await saveDeployment(contractDeployment);
 };
 
+/**
+ * Saves a deployments JSON file with the updated deployments information
+ * @param deployment deployment object to added to deplyments file
+ * @param proxyAdmin (optional ? PROXY_ADMIN_ADDRESS) custom proxy admin address
+ */
 export const saveDeployment = async (
   deployment: IRegularDeployment | IUpgradeDeployment,
   proxyAdmin?: IRegularDeployment
@@ -205,10 +228,13 @@ export const saveDeployment = async (
   // if no deployed yet in this network
   if (networkIndex == undefined) {
     const provider = ghre.ethers.provider;
+    const network = networks.get(
+      provider.network ? provider.network.chainId : (await provider.getNetwork()).chainId
+    )!;
     netDeployment = {
       network: {
-        name: provider.network.name,
-        chainId: provider.network.chainId,
+        name: network.name,
+        chainId: network.chainId,
       },
       smartContracts: {
         proxyAdmins: proxyAdmin ? [proxyAdmin] : [],
@@ -254,9 +280,14 @@ export const saveDeployment = async (
   }
 
   // store/write deployments JSON file
-  await fs.writeFile(process.env.DEPLOYMENTS_PATH!, JSON.stringify(deployments));
+  await fs.writeFile(ENV.PATH.DEPLOYMENTS, JSON.stringify(deployments));
 };
 
+/**
+ * Gets a Proxy Admin Deployment from a Network Deployment from deployments JSON file
+ * @param address address that identifies a Proxy Admin in a network deployment
+ * @returns Proxy Admin Deployment object
+ */
 const getProxyAdminDeployment = async (address?: string) => {
   const { networkIndex, netDeployment, deployments } = await getActualNetDeployment();
 
@@ -278,6 +309,11 @@ const getProxyAdminDeployment = async (address?: string) => {
   }
 };
 
+/**
+ * Gets a Contract Deployment from a Network Deployment from deployments JSON file
+ * @param addressOrName address or name that identifies a contract in a network deployment
+ * @returns Contract Deployment object
+ */
 const getContractDeployment = async (addressOrName: string) => {
   const { networkIndex, netDeployment, deployments } = await getActualNetDeployment();
 
@@ -300,22 +336,26 @@ const getContractDeployment = async (addressOrName: string) => {
   }
 };
 
+/**
+ * Gets the actual Network Deployment from deployments JSON file
+ * @param hre (optional | ghre) use custom HRE
+ * @returns Network Deployment object
+ */
 const getActualNetDeployment = async (hre?: HardhatRuntimeEnvironment) => {
   const provider = hre ? hre.ethers.provider : ghre.ethers.provider;
-  provider.network ? undefined : await provider.getNetwork();
-  const path = process.env.DEPLOYMENTS_PATH!;
+  const network = networks.get(
+    provider.network ? provider.network.chainId : (await provider.getNetwork()).chainId
+  )!;
   let deployments: INetworkDeployment[] = [];
   // if the file exists, get previous data
-  if (await fs.exists(path)) {
-    deployments = JSON.parse(await fs.readFile(path));
+  if (await fs.exists(ENV.PATH.DEPLOYMENTS)) {
+    deployments = JSON.parse(await fs.readFile(ENV.PATH.DEPLOYMENTS));
   } else {
     console.warn("WARN: no deplyments file, createing a new one...");
   }
   // check if network is available in the deployments file
   const networkIndex = deployments.findIndex(
-    (netDepl) =>
-      netDepl.network.name == provider.network.name &&
-      netDepl.network.chainId == provider.network.chainId
+    (netDepl) => netDepl.network.name == network.name && netDepl.network.chainId == network.chainId
   );
   let netDeployment: INetworkDeployment | undefined;
   if (networkIndex !== -1) {
@@ -331,7 +371,13 @@ const getActualNetDeployment = async (hre?: HardhatRuntimeEnvironment) => {
     };
   }
 };
-
+/**
+ * Gets the deployed contract timestamp
+ * @param contract contract instance to use
+ * @param deployTxHash (optional | undefined) it can be used to retrive timestamp
+ * @param hre (optional | ghre) use custom HRE
+ * @returns ISO string date time representation of the contract timestamp
+ */
 const getContractTimestamp = async (
   contract: Contract,
   deployTxHash?: string,

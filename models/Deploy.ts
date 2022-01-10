@@ -1,3 +1,27 @@
+import { ENV } from "../process.env";
+
+export interface INetwork {
+  chainId: number;
+  name: string;
+  url: string;
+}
+
+export const networks = new Map<number | undefined, INetwork>([
+  [
+    undefined,
+    { chainId: ENV.NETWORK.HARDHAT.CHAINID, name: "hardhat", url: ENV.NETWORK.HARDHAT.URL },
+  ], // Default hardhat
+  [0, { chainId: ENV.NETWORK.HARDHAT.CHAINID, name: "hardhat", url: ENV.NETWORK.HARDHAT.URL }], // Default hardhat
+  [
+    ENV.NETWORK.HARDHAT.CHAINID,
+    { chainId: ENV.NETWORK.HARDHAT.CHAINID, name: "hardhat", url: ENV.NETWORK.HARDHAT.URL },
+  ],
+  [
+    ENV.NETWORK.GANACHE.CHAINID,
+    { chainId: ENV.NETWORK.HARDHAT.CHAINID, name: "ganache", url: ENV.NETWORK.GANACHE.URL },
+  ],
+]);
+
 export interface IRegularDeployment {
   address: string;
   contractName?: string;
