@@ -56,6 +56,12 @@ const CONTRACT = {
   CONTRACT_REGISTRY: {
     NAME: getFromEnvFile("CONTRACT_CONTRACT_REGISTRY_NAME", "ContractRegistry") as string,
   },
+  EXAMPLE_BALLOT: {
+    NAME: getFromEnvFile("CONTRACT_EXAMPLE_STORAGE_NAME", "ExampleBallot") as string,
+  },
+  EXAMPLE_OWNER: {
+    NAME: getFromEnvFile("CONTRACT_EXAMPLE_STORAGE_NAME", "ExampleOwner") as string,
+  },
   EXAMPLE_STORAGE: {
     NAME: getFromEnvFile("CONTRACT_EXAMPLE_STORAGE_NAME", "ExampleStorage") as string,
   },

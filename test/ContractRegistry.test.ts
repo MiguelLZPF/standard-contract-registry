@@ -7,15 +7,32 @@ import { ethers } from "hardhat";
 import {
   ContractRegistry,
   ContractRegistry__factory,
+  ExampleBallot,
+  ExampleBallot__factory,
+  ExampleOwner,
+  ExampleOwner__factory,
   ExampleStorage,
   ExampleStorage__factory,
 } from "../typechain-types";
 import { keccak256 } from "@ethersproject/keccak256";
 import { randomBytes } from "crypto";
-import { GAS_OPT, initHRE, stringToBytesFixed } from "../scripts/utils";
+import {
+  ADDR_ZERO,
+  delay,
+  GAS_OPT,
+  getTimeStamp,
+  initHRE,
+  stringToStringHexFixed,
+} from "../scripts/utils";
 import { INetwork } from "../models/Deploy";
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { ENV } from "../process.env";
+import {
+  IExpectedRecord,
+  checkRecord,
+  versionHexStringToDot,
+  versionDotToHexString,
+} from "../scripts/contractRegistry";
 
 // Generic Constants
 let PROVIDER: JsonRpcProvider;
@@ -30,7 +47,28 @@ const REVERT_MESSAGES = {
     paramName: "Name must be unique or null",
     alreadyRegistered: "Contract already registered",
   },
+  update: {
+    notUpgradeable: "Contract not upgradeable",
+    notRegistered: "Contract not registered",
+    paramLogic: "Logic already updated",
+    paramLogicCodeHash: "Logic hash already updated",
+    versionLower: "New version must be higher",
+    notAdmin: "You are not the admin",
+  },
+  changeAdmin: {
+    paramAdmin: "New admin address needed",
+    sameAdmin: "New admin address equals sender",
+    notRegistered: "Contract not registered",
+  },
 };
+
+let CONTRACT_REGISTRY_NAME_HEXSTRING: string;
+let EXAMPLE_BALLOT_NAME_HEXSTRING: string;
+let EXAMPLE_OWNER_NAME_HEXSTRING: string;
+let EXAMPLE_STORAGE_NAME_HEXSTRING: string;
+let ANOTHER_NAME_HEXSTRING: string;
+const NAME_HEX_STRING_ZERO = new Uint8Array(32);
+const VERSION_HEX_STRING_ZERO = new Uint8Array(2);
 
 // Specific Variables
 // -- Wallets
@@ -38,9 +76,12 @@ let admin: Wallet;
 let users: Wallet[] = [];
 // -- Contracts
 let contractRegistry: ContractRegistry;
+let exampleBallot: ExampleBallot;
+let exampleOwner: ExampleOwner;
 let exampleStorage: ExampleStorage;
-
-before("Initialize test environment", async () => {
+// -- utils
+let lastRegisteredAt: number, lastUpdatedAt: number;
+before("Initialize test environment and const/var", async () => {
   // set global HardhatRuntimeEnvironment to use the same provider in scripts
   ({ gProvider: PROVIDER, gCurrentNetwork: NETWORK } = await initHRE(hre));
   // Create random test wallets
@@ -49,12 +90,38 @@ before("Initialize test environment", async () => {
     for (let u = 0; u < ENV.WALLET.TEST.USER_NUMBER; u++) {
       users[u] = Wallet.createRandom().connect(PROVIDER);
     }
+    // Contract names as hexadecimal string with fixed length
+    CONTRACT_REGISTRY_NAME_HEXSTRING = await stringToStringHexFixed(
+      ENV.CONTRACT.CONTRACT_REGISTRY.NAME,
+      32
+    );
+    EXAMPLE_BALLOT_NAME_HEXSTRING = await stringToStringHexFixed(
+      ENV.CONTRACT.EXAMPLE_BALLOT.NAME,
+      32
+    );
+    EXAMPLE_OWNER_NAME_HEXSTRING = await stringToStringHexFixed(
+      ENV.CONTRACT.EXAMPLE_OWNER.NAME,
+      32
+    );
+    EXAMPLE_STORAGE_NAME_HEXSTRING = await stringToStringHexFixed(
+      ENV.CONTRACT.EXAMPLE_STORAGE.NAME,
+      32
+    );
+    ANOTHER_NAME_HEXSTRING = await stringToStringHexFixed(
+      ENV.CONTRACT.EXAMPLE_BALLOT.NAME + "_BAD!!!!",
+      32
+    );
   } catch (error) {
     throw new Error(`Error creating or reading wallets from keystore. ${error}`);
   }
 });
 
 describe("Contract Registry - Deploy and Initialization", async function () {
+  before("Init variables", async () => {
+    lastRegisteredAt = await getTimeStamp();
+    lastUpdatedAt = await getTimeStamp();
+  });
+
   step("Should deploy contract registry", async () => {
     contractRegistry = await (
       await new ContractRegistry__factory(admin).deploy(GAS_OPT)
@@ -67,76 +134,135 @@ describe("Contract Registry - Deploy and Initialization", async function () {
     // Contract Registered
     contractRegistry.on(
       contractRegistry.filters.Registered(),
-      (proxy, name, version, logicCodeHash) => {
-        const nameString = Buffer.from(name, "hex").toString("utf-8");
-        const versionStr = Buffer.from(version, "hex").toString();
+      async (proxy, name, version, logicCodeHash, event) => {
+        const nameString = Buffer.from(name.substring(2), "hex").toString("utf-8");
+        const versionStr = await versionHexStringToDot(version);
+        const blockTime = (await event.getBlock()).timestamp;
         console.log(
-          `New Contract Registered: { Proxy: ${proxy}, Name: ${nameString}, Version: ${versionStr}, Logic code hash: ${logicCodeHash}}`
+          `New Contract Registered: { Proxy: ${proxy}, Name: ${nameString}, Version: ${versionStr}, Logic code hash: ${logicCodeHash}} at Block ${
+            event.blockNumber
+          } (${event.blockHash}) timestamp: ${new Date(
+            blockTime * 1000
+          ).toISOString()} (${blockTime})`
         );
       }
     );
     // Contract Updated
     contractRegistry.on(
       contractRegistry.filters.Updated(),
-      (proxy, name, version, logicCodeHash) => {
+      async (proxy, name, version, logicCodeHash, event) => {
         const nameString = Buffer.from(name, "hex").toString("utf-8");
-        const versionStr = Buffer.from(version, "hex").toString();
+        const versionStr = await versionHexStringToDot(version);
+        const blockTime = (await event.getBlock()).timestamp;
         console.log(
-          `New Contract Updated: { Proxy: ${proxy}, Name: ${nameString}, Version: ${versionStr}, Logic code hash: ${logicCodeHash}}`
+          `New Contract Updated: { Proxy: ${proxy}, Name: ${nameString}, Version: ${versionStr}, Logic code hash: ${logicCodeHash}} at Block ${
+            event.blockNumber
+          } (${event.blockHash}) timestamp: ${new Date(
+            blockTime * 1000
+          ).toISOString()} (${blockTime})`
+        );
+      }
+    );
+    // Admin Changed
+    contractRegistry.on(
+      contractRegistry.filters.AdminChanged(),
+      async (oldAdmin, newAdmin, name, event) => {
+        const nameString = Buffer.from(name, "hex").toString("utf-8");
+        const blockTime = (await event.getBlock()).timestamp;
+        console.log(
+          `New Admin Changed: { Old Admin: ${oldAdmin}, New Admin: ${newAdmin}, Record Name: ${nameString}} at Block ${
+            event.blockNumber
+          } (${event.blockHash}) timestamp: ${new Date(
+            blockTime * 1000
+          ).toISOString()} (${blockTime})`
         );
       }
     );
   });
 
   step("Should initialize contract", async () => {
-    expect(
-      await (
-        await contractRegistry.initialize(
-          ethers.constants.AddressZero,
-          new Uint8Array(30),
-          new Uint8Array(2),
-          keccak256(ContractRegistry__factory.bytecode),
-          GAS_OPT
-        )
-      ).wait()
-    ).not.to.be.undefined;
+    const receipt = await (
+      await contractRegistry.initialize(
+        ethers.constants.AddressZero,
+        new Uint8Array(32),
+        new Uint8Array(2),
+        keccak256(ContractRegistry__factory.bytecode),
+        GAS_OPT
+      )
+    ).wait();
+    expect(receipt).not.to.be.undefined;
+    // update block timestamp
+    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(receipt.blockHash);
+  });
+
+  step("Should check if ContractRegistry is registered", async () => {
+    await checkRecord(contractRegistry.address, contractRegistry.address, {
+      found: true,
+      proxy: contractRegistry.address,
+      logic: contractRegistry.address,
+      admin: admin.address,
+      name: CONTRACT_REGISTRY_NAME_HEXSTRING,
+      version: await versionDotToHexString("00.00"),
+      logicCodeHash: keccak256(ContractRegistry__factory.bytecode),
+      rat: lastRegisteredAt,
+      uat: lastUpdatedAt,
+    } as IExpectedRecord);
   });
 
   it("Should FAIL initializing same contract again", async () => {
     await expect(
       contractRegistry.initialize(
         ethers.constants.AddressZero,
-        new Uint8Array(30),
+        new Uint8Array(32),
         new Uint8Array(2),
         keccak256(ContractRegistry__factory.bytecode),
         GAS_OPT
       )
     ).to.be.revertedWith(REVERT_MESSAGES.initializable.initialized);
   });
+
+  after("Wait for events", async () => {
+    await delay(5000); // 2 sec
+  });
 });
 
-describe("Contract Registry - Regular use case", async () => {
-  let nameBytes: Promise<Uint8Array>, anotherNameBytes: Promise<Uint8Array>;
-  const versionBytes = new Uint8Array(2);
-
+describe("Contract Registry - Regular deployment use case", async () => {
   before("Init variables", async () => {
-    // encode to bytes of length 30 using UTF-8
-    nameBytes = stringToBytesFixed(ENV.CONTRACT.CONTRACT_REGISTRY.NAME, 30);
-    anotherNameBytes = stringToBytesFixed(ENV.CONTRACT.CONTRACT_REGISTRY.NAME + "_01", 30);
+    // set default signer for this flow
+    contractRegistry = contractRegistry.connect(users[0]);
   });
-  before("Deploy example contract", async () => {
+  before("Deploy example ballot contract", async () => {
+    exampleBallot = await (
+      await new ExampleBallot__factory(admin).deploy(
+        [
+          await stringToStringHexFixed("one", 32),
+          await stringToStringHexFixed("two", 32),
+          await stringToStringHexFixed("three", 32),
+        ],
+        GAS_OPT
+      )
+    ).deployed();
+    expect(isAddress(exampleBallot.address)).to.be.true;
+    console.log("Example Ballot deployed at: ", exampleBallot.address);
+  });
+  before("Deploy example owner contract", async () => {
+    exampleOwner = await (await new ExampleOwner__factory(admin).deploy(GAS_OPT)).deployed();
+    expect(isAddress(exampleOwner.address)).to.be.true;
+    console.log("Example Owner deployed at: ", exampleOwner.address);
+  });
+  before("Deploy example storage contract", async () => {
     exampleStorage = await (await new ExampleStorage__factory(admin).deploy(GAS_OPT)).deployed();
     expect(isAddress(exampleStorage.address)).to.be.true;
     console.log("Example Storage deployed at: ", exampleStorage.address);
   });
-
+  // REGISTER
   it("Should FAIL to register without logic address", async () => {
     await expect(
-      contractRegistry.connect(users[0]).register(
+      contractRegistry.register(
         ethers.constants.AddressZero,
-        ethers.constants.AddressZero, // <--
-        await nameBytes,
-        versionBytes,
+        ethers.constants.AddressZero, //! <--
+        CONTRACT_REGISTRY_NAME_HEXSTRING,
+        VERSION_HEX_STRING_ZERO,
         keccak256(randomBytes(10)),
         GAS_OPT
       )
@@ -144,23 +270,11 @@ describe("Contract Registry - Regular use case", async () => {
   });
   it("Should FAIL to register without name", async () => {
     await expect(
-      contractRegistry.connect(users[0]).register(
+      contractRegistry.register(
         ethers.constants.AddressZero,
         exampleStorage.address,
-        await stringToBytesFixed("", 30), // <--
-        new Uint8Array(2),
-        keccak256(randomBytes(10)),
-        GAS_OPT
-      )
-    ).to.be.revertedWith(REVERT_MESSAGES.register.paramName);
-  });
-  it("Should FAIL to register with USED name", async () => {
-    await expect(
-      contractRegistry.connect(users[0]).register(
-        ethers.constants.AddressZero,
-        exampleStorage.address,
-        await stringToBytesFixed(ENV.CONTRACT.CONTRACT_REGISTRY.NAME, 30), //! <--
-        new Uint8Array(2),
+        await stringToStringHexFixed("", 32), //! <--
+        VERSION_HEX_STRING_ZERO,
         keccak256(randomBytes(10)),
         GAS_OPT
       )
@@ -168,18 +282,374 @@ describe("Contract Registry - Regular use case", async () => {
   });
   it("Should FAIL to register with USED address", async () => {
     await expect(
-      contractRegistry.connect(users[0]).register(
+      contractRegistry.register(
         ethers.constants.AddressZero,
         contractRegistry.address, //! <--
-        await anotherNameBytes, // another name is needed to trigger this revert
-        new Uint8Array(2),
+        ANOTHER_NAME_HEXSTRING, // another name is needed to trigger this revert
+        VERSION_HEX_STRING_ZERO,
         keccak256(randomBytes(10)),
         GAS_OPT
       )
     ).to.be.revertedWith(REVERT_MESSAGES.register.alreadyRegistered);
-    /* console.log(
-      await contractRegistry.getAdminContracts(),
-      await contractRegistry.getRecord(contractRegistry.address)
-    ); */
+  });
+  step("Should register Example Storage contract", async () => {
+    const receipt = await (
+      await contractRegistry.register(
+        ethers.constants.AddressZero,
+        exampleStorage.address,
+        EXAMPLE_STORAGE_NAME_HEXSTRING,
+        VERSION_HEX_STRING_ZERO,
+        keccak256(ExampleStorage__factory.bytecode),
+        GAS_OPT
+      )
+    ).wait();
+    expect(receipt).not.to.be.undefined;
+    // update block timestamp
+    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(receipt.blockHash);
+  });
+  // GET RECORD
+  step("Should check if Example Storage is registered", async () => {
+    // use contract object to use user0.address in call
+    await checkRecord(contractRegistry.connect(users[0]), exampleStorage.address, {
+      found: true,
+      proxy: exampleStorage.address,
+      logic: exampleStorage.address,
+      admin: users[0].address,
+      name: EXAMPLE_STORAGE_NAME_HEXSTRING,
+      version: await versionDotToHexString("00.00"),
+      logicCodeHash: keccak256(ExampleStorage__factory.bytecode),
+      rat: lastRegisteredAt,
+      uat: lastUpdatedAt,
+    } as IExpectedRecord);
+  });
+  it("Should FAIL to register with USED name", async () => {
+    await expect(
+      contractRegistry.register(
+        ethers.constants.AddressZero,
+        exampleStorage.address,
+        EXAMPLE_STORAGE_NAME_HEXSTRING, //! <--
+        VERSION_HEX_STRING_ZERO,
+        keccak256(randomBytes(10)),
+        GAS_OPT
+      )
+    ).to.be.revertedWith(REVERT_MESSAGES.register.paramName);
+  });
+  // UPDATE
+  it("Should FAIL to update regular deployment", async () => {
+    await expect(
+      contractRegistry.update(
+        exampleStorage.address, // Not used
+        ethers.constants.AddressZero, // Not used
+        EXAMPLE_STORAGE_NAME_HEXSTRING, // Not used
+        await versionDotToHexString("00.00"), // Not used
+        keccak256(CONTRACT_REGISTRY_NAME_HEXSTRING), // Not used
+        GAS_OPT
+      )
+    ).to.be.revertedWith(REVERT_MESSAGES.update.notUpgradeable);
+  });
+  // CHANGE REGISTERED ADMIN
+  it("Should FAIL to change admin witout new admin address", async () => {
+    await expect(
+      contractRegistry.changeRegisteredAdmin(
+        ANOTHER_NAME_HEXSTRING, // Not used
+        ADDR_ZERO, //! <--
+        GAS_OPT
+      )
+    ).to.be.revertedWith(REVERT_MESSAGES.changeAdmin.paramAdmin);
+  });
+  it("Should FAIL to change admin to same admin", async () => {
+    await expect(
+      contractRegistry.changeRegisteredAdmin(
+        ANOTHER_NAME_HEXSTRING,
+        users[0].address, //! <--
+        GAS_OPT
+      )
+    ).to.be.revertedWith(REVERT_MESSAGES.changeAdmin.sameAdmin);
+  });
+  it("Should FAIL to change admin of unregistered contract", async () => {
+    await expect(
+      contractRegistry.changeRegisteredAdmin(
+        ANOTHER_NAME_HEXSTRING, //! <--
+        users[1].address, // Not used
+        GAS_OPT
+      )
+    ).to.be.revertedWith(REVERT_MESSAGES.changeAdmin.notRegistered);
+  });
+  it("Should change admin of example contract", async () => {
+    const receipt = await (
+      await contractRegistry.changeRegisteredAdmin(
+        EXAMPLE_STORAGE_NAME_HEXSTRING,
+        users[1].address,
+        GAS_OPT
+      )
+    ).wait();
+    expect(receipt).not.to.be.undefined;
+  });
+  // REGULAR LIST
+  step("Should register Example Ballot contract", async () => {
+    const receipt = await (
+      await contractRegistry.register(
+        ethers.constants.AddressZero,
+        exampleBallot.address,
+        EXAMPLE_BALLOT_NAME_HEXSTRING,
+        VERSION_HEX_STRING_ZERO,
+        keccak256(ExampleBallot__factory.bytecode),
+        GAS_OPT
+      )
+    ).wait();
+    expect(receipt).not.to.be.undefined;
+    // update block timestamp
+    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(receipt.blockHash);
+  });
+  step("Should register Example Owner contract", async () => {
+    const receipt = await (
+      await contractRegistry.register(
+        ethers.constants.AddressZero,
+        exampleOwner.address,
+        EXAMPLE_OWNER_NAME_HEXSTRING,
+        VERSION_HEX_STRING_ZERO,
+        keccak256(ExampleOwner__factory.bytecode),
+        GAS_OPT
+      )
+    ).wait();
+    expect(receipt).not.to.be.undefined;
+    // update block timestamp
+    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(receipt.blockHash);
+  });
+  // GET LIST
+  step("Should get system contracts", async () => {
+    const namesByAdmin = await contractRegistry.connect(admin).getMyRecords();
+    const namesBySystem = await contractRegistry.getSystemRecords();
+    expect(namesByAdmin.length).to.equal(1).to.equal(namesBySystem.length);
+    expect(namesByAdmin[0]).to.equal(CONTRACT_REGISTRY_NAME_HEXSTRING).to.equal(namesBySystem[0]);
+  });
+  step("Should get user 0 contracts", async () => {
+    const names = await contractRegistry.getMyRecords();
+    expect(names.length).to.equal(2);
+    expect(names[0]).to.equal(EXAMPLE_BALLOT_NAME_HEXSTRING);
+    expect(names[1]).to.equal(EXAMPLE_OWNER_NAME_HEXSTRING);
+  });
+  step("Should get user 1 contracts", async () => {
+    const names = await contractRegistry.connect(users[1]).getMyRecords();
+    expect(names.length).to.equal(1);
+    expect(names[0]).to.equal(EXAMPLE_STORAGE_NAME_HEXSTRING);
+  });
+  after("Wait for events", async () => {
+    await delay(5000); // 2 sec
+  });
+});
+
+// TODO: 
+describe("Contract Registry - Regular deployment use case", async () => {
+  before("Init variables", async () => {
+    // set default signer for this flow
+    contractRegistry = contractRegistry.connect(users[2]);
+  });
+  /* 
+  before("Deploy example ballot contract", async () => {
+    exampleBallot = await (
+      await new ExampleBallot__factory(admin).deploy(
+        [
+          await stringToStringHexFixed("one", 32),
+          await stringToStringHexFixed("two", 32),
+          await stringToStringHexFixed("three", 32),
+        ],
+        GAS_OPT
+      )
+    ).deployed();
+    expect(isAddress(exampleBallot.address)).to.be.true;
+    console.log("Example Ballot deployed at: ", exampleBallot.address);
+  });
+  before("Deploy example owner contract", async () => {
+    exampleOwner = await (await new ExampleOwner__factory(admin).deploy(GAS_OPT)).deployed();
+    expect(isAddress(exampleOwner.address)).to.be.true;
+    console.log("Example Owner deployed at: ", exampleOwner.address);
+  });
+  before("Deploy example storage contract", async () => {
+    exampleStorage = await (await new ExampleStorage__factory(admin).deploy(GAS_OPT)).deployed();
+    expect(isAddress(exampleStorage.address)).to.be.true;
+    console.log("Example Storage deployed at: ", exampleStorage.address);
+  });
+  // REGISTER
+  it("Should FAIL to register without logic address", async () => {
+    await expect(
+      contractRegistry.register(
+        ethers.constants.AddressZero,
+        ethers.constants.AddressZero, //! <--
+        CONTRACT_REGISTRY_NAME_HEXSTRING,
+        VERSION_HEX_STRING_ZERO,
+        keccak256(randomBytes(10)),
+        GAS_OPT
+      )
+    ).to.be.revertedWith(REVERT_MESSAGES.register.paramLogic);
+  });
+  it("Should FAIL to register without name", async () => {
+    await expect(
+      contractRegistry.register(
+        ethers.constants.AddressZero,
+        exampleStorage.address,
+        await stringToStringHexFixed("", 32), //! <--
+        VERSION_HEX_STRING_ZERO,
+        keccak256(randomBytes(10)),
+        GAS_OPT
+      )
+    ).to.be.revertedWith(REVERT_MESSAGES.register.paramName);
+  });
+  it("Should FAIL to register with USED address", async () => {
+    await expect(
+      contractRegistry.register(
+        ethers.constants.AddressZero,
+        contractRegistry.address, //! <--
+        ANOTHER_NAME_HEXSTRING, // another name is needed to trigger this revert
+        VERSION_HEX_STRING_ZERO,
+        keccak256(randomBytes(10)),
+        GAS_OPT
+      )
+    ).to.be.revertedWith(REVERT_MESSAGES.register.alreadyRegistered);
+  });
+  step("Should register Example Storage contract", async () => {
+    const receipt = await (
+      await contractRegistry.register(
+        ethers.constants.AddressZero,
+        exampleStorage.address,
+        EXAMPLE_STORAGE_NAME_HEXSTRING,
+        VERSION_HEX_STRING_ZERO,
+        keccak256(ExampleStorage__factory.bytecode),
+        GAS_OPT
+      )
+    ).wait();
+    expect(receipt).not.to.be.undefined;
+    // update block timestamp
+    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(receipt.blockHash);
+  });
+  // GET RECORD
+  step("Should check if Example Storage is registered", async () => {
+    // use contract object to use user0.address in call
+    await checkRecord(contractRegistry.connect(users[0]), exampleStorage.address, {
+      found: true,
+      proxy: exampleStorage.address,
+      logic: exampleStorage.address,
+      admin: users[0].address,
+      name: EXAMPLE_STORAGE_NAME_HEXSTRING,
+      version: await versionDotToHexString("00.00"),
+      logicCodeHash: keccak256(ExampleStorage__factory.bytecode),
+      rat: lastRegisteredAt,
+      uat: lastUpdatedAt,
+    } as IExpectedRecord);
+  });
+  it("Should FAIL to register with USED name", async () => {
+    await expect(
+      contractRegistry.register(
+        ethers.constants.AddressZero,
+        exampleStorage.address,
+        EXAMPLE_STORAGE_NAME_HEXSTRING, //! <--
+        VERSION_HEX_STRING_ZERO,
+        keccak256(randomBytes(10)),
+        GAS_OPT
+      )
+    ).to.be.revertedWith(REVERT_MESSAGES.register.paramName);
+  });
+  // UPDATE
+  it("Should FAIL to update regular deployment", async () => {
+    await expect(
+      contractRegistry.update(
+        exampleStorage.address, // Not used
+        ethers.constants.AddressZero, // Not used
+        EXAMPLE_STORAGE_NAME_HEXSTRING, // Not used
+        await versionDotToHexString("00.00"), // Not used
+        keccak256(CONTRACT_REGISTRY_NAME_HEXSTRING), // Not used
+        GAS_OPT
+      )
+    ).to.be.revertedWith(REVERT_MESSAGES.update.notUpgradeable);
+  });
+  // CHANGE REGISTERED ADMIN
+  it("Should FAIL to change admin witout new admin address", async () => {
+    await expect(
+      contractRegistry.changeRegisteredAdmin(
+        ANOTHER_NAME_HEXSTRING, // Not used
+        ADDR_ZERO, //! <--
+        GAS_OPT
+      )
+    ).to.be.revertedWith(REVERT_MESSAGES.changeAdmin.paramAdmin);
+  });
+  it("Should FAIL to change admin to same admin", async () => {
+    await expect(
+      contractRegistry.changeRegisteredAdmin(
+        ANOTHER_NAME_HEXSTRING,
+        users[0].address, //! <--
+        GAS_OPT
+      )
+    ).to.be.revertedWith(REVERT_MESSAGES.changeAdmin.sameAdmin);
+  });
+  it("Should FAIL to change admin of unregistered contract", async () => {
+    await expect(
+      contractRegistry.changeRegisteredAdmin(
+        ANOTHER_NAME_HEXSTRING, //! <--
+        users[1].address, // Not used
+        GAS_OPT
+      )
+    ).to.be.revertedWith(REVERT_MESSAGES.changeAdmin.notRegistered);
+  });
+  it("Should change admin of example contract", async () => {
+    const receipt = await (
+      await contractRegistry.changeRegisteredAdmin(
+        EXAMPLE_STORAGE_NAME_HEXSTRING,
+        users[1].address,
+        GAS_OPT
+      )
+    ).wait();
+    expect(receipt).not.to.be.undefined;
+  });
+  // REGULAR LIST
+  step("Should register Example Ballot contract", async () => {
+    const receipt = await (
+      await contractRegistry.register(
+        ethers.constants.AddressZero,
+        exampleBallot.address,
+        EXAMPLE_BALLOT_NAME_HEXSTRING,
+        VERSION_HEX_STRING_ZERO,
+        keccak256(ExampleBallot__factory.bytecode),
+        GAS_OPT
+      )
+    ).wait();
+    expect(receipt).not.to.be.undefined;
+    // update block timestamp
+    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(receipt.blockHash);
+  });
+  step("Should register Example Owner contract", async () => {
+    const receipt = await (
+      await contractRegistry.register(
+        ethers.constants.AddressZero,
+        exampleOwner.address,
+        EXAMPLE_OWNER_NAME_HEXSTRING,
+        VERSION_HEX_STRING_ZERO,
+        keccak256(ExampleOwner__factory.bytecode),
+        GAS_OPT
+      )
+    ).wait();
+    expect(receipt).not.to.be.undefined;
+    // update block timestamp
+    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(receipt.blockHash);
+  });
+  // GET LIST
+  step("Should get system contracts", async () => {
+    const namesByAdmin = await contractRegistry.connect(admin).getMyRecords();
+    const namesBySystem = await contractRegistry.getSystemRecords();
+    expect(namesByAdmin.length).to.equal(1).to.equal(namesBySystem.length);
+    expect(namesByAdmin[0]).to.equal(CONTRACT_REGISTRY_NAME_HEXSTRING).to.equal(namesBySystem[0]);
+  });
+  step("Should get user 0 contracts", async () => {
+    const names = await contractRegistry.getMyRecords();
+    expect(names.length).to.equal(2);
+    expect(names[0]).to.equal(EXAMPLE_BALLOT_NAME_HEXSTRING);
+    expect(names[1]).to.equal(EXAMPLE_OWNER_NAME_HEXSTRING);
+  });
+  step("Should get user 1 contracts", async () => {
+    const names = await contractRegistry.connect(users[1]).getMyRecords();
+    expect(names.length).to.equal(1);
+    expect(names[0]).to.equal(EXAMPLE_STORAGE_NAME_HEXSTRING);
+  }); */
+  after("Wait for events", async () => {
+    await delay(5000); // 2 sec
   });
 });

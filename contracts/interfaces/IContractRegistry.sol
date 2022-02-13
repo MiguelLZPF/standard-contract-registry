@@ -5,23 +5,48 @@ struct ContractRecord {
   address proxy; // use as ID too
   address logic;
   address admin;
-  bytes30 name; // must be unique OPT DEF: 0x00...00
+  bytes32 name; // must be unique OPT DEF: 0x00...00
   bytes2 version;
+  uint16 index; // index in array (limit of 65536 per admin)
   bytes32 logicCodeHash; // OPT def: 0x00...00
   uint256 rat; // Registered AT
   uint256 uat; // Updated AT
 }
 
 /**
- * @title Contract Registry
+ * @title Contract Registry Interface
  * @author Miguel Gomez Carpena
  * @dev Interface for ContractRegistry Smart Contract
  */
 interface IContractRegistry {
+  // EVENTS
+  event Registered(
+    address indexed proxy,
+    bytes32 name,
+    bytes2 indexed version,
+    bytes32 indexed logicCodeHash
+  );
+  event Updated(
+    address indexed proxy,
+    bytes32 name,
+    bytes2 indexed version,
+    bytes32 indexed logicCodeHash
+  );
+  event AdminChanged(address indexed oldAdmin, address indexed newAdmin, bytes32 name);
+
+  // =========
+  // FUNCTIONS
+  function initialize(
+    address proxy,
+    bytes32 name,
+    bytes2 version,
+    bytes32 logicCodeHash
+  ) external;
+
   function register(
     address proxy,
     address logic,
-    bytes30 name,
+    bytes32 name,
     bytes2 version,
     bytes32 logicCodeHash
   ) external;
@@ -29,7 +54,24 @@ interface IContractRegistry {
   function update(
     address proxy,
     address logic,
+    bytes32 actualName,
     bytes2 version,
     bytes32 logicCodeHash
   ) external;
+
+  function changeRegisteredAdmin(bytes32 name, address newAdmin) external;
+
+  function getRecord(address proxy)
+    external
+    view
+    returns (bool found, ContractRecord calldata record);
+
+  function getRecordByName(bytes32 name, address admin)
+    external
+    view
+    returns (bool found, ContractRecord calldata record);
+
+  function getSystemRecords() external view returns (bytes32[] calldata contractNames);
+
+  function getMyRecords() external view returns (bytes32[] calldata contractNames);
 }

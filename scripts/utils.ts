@@ -3,7 +3,7 @@ import util from "util";
 import { concat } from "@ethersproject/bytes";
 import { constants } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { JsonRpcProvider } from "@ethersproject/providers";
+import { BlockTag, JsonRpcProvider } from "@ethersproject/providers";
 import { INetwork, networks } from "../models/Deploy";
 
 // Global HRE, Ethers Provider and network parameters
@@ -63,9 +63,21 @@ export const checkDirectoriesInPath = async (reqPath: string) => {
   await checkDirectories(directories);
 };
 
-export const stringToBytesFixed = async (inputString: string, length: number) => {
-  const nameInBytes = Uint8Array.from(Buffer.from(inputString, "utf-8"));
-  return concat([nameInBytes, new Uint8Array(length - nameInBytes.length)]);
+export const getTimeStamp = async (block?: BlockTag, provider?: JsonRpcProvider) => {
+  provider = provider ? provider : gProvider;
+  if (block) {
+    return (await provider.getBlock(block)).timestamp;
+  } else {
+    return (await provider.getBlock("latest")).timestamp;
+  }
+};
+
+export const stringToStringHexFixed = async (inputString: string, length: number) => {
+  const nameBuffer = Buffer.from(inputString, "utf-8");
+  const nameInBytes = nameBuffer.toString("hex");
+  return `0x${nameInBytes}${Buffer.from(new Uint8Array(length - nameBuffer.byteLength)).toString(
+    "hex"
+  )}`;
 };
 
 /**

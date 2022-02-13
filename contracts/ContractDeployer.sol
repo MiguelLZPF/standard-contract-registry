@@ -55,6 +55,12 @@ contract ContractDeployer {
     // the owner is the msg.sender. May or may not be ownable
     try Ownable(proxy).transferOwnership(msg.sender) {} catch {}
 
-    IContractRegistry(registry).update(proxy, logic, version, logicCodeHash);
+    IContractRegistry(registry).update(
+      proxy,
+      logic,
+      bytes30(0),
+      version,
+      logicCodeHash
+    );
   }
 }

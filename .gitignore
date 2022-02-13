@@ -10,7 +10,7 @@ cache
 artifacts
 
 # Types
-typechain*
+# typechain*
 
 # Encripted Wallets
 keystore
