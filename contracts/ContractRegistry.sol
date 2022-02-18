@@ -218,7 +218,7 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
   ) internal {
     // Parameter checks
     // regular deployment not allowed
-    require(proxy == address(0) || proxy == logic, "Contract not upgradeable");
+    require(proxy != logic, "Contract not upgradeable");
     // get record
     ContractRecord storage record = contractRecords[proxy];
     // Other checks
@@ -227,7 +227,7 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
     // -- check if diferent logic address
     require(record.logic != logic, "Logic already updated");
     require(record.logicCodeHash != logicCodeHash, "Logic hash already updated");
-    require(version > record.version, "New version must be higher");
+    require(version != record.version, "New version must be higher");
     // -- check if msg.sender is the admin how registred it
     require(record.admin == _msgSender(), "You are not the admin");
     // Update in storage

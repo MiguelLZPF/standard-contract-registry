@@ -6,7 +6,12 @@ import { TransactionReceipt } from "@ethersproject/providers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Contract } from "ethers";
 import { Signer } from "@ethersproject/abstract-signer";
-import { INetworkDeployment, IRegularDeployment, IUpgradeDeployment, networks } from "../models/Deploy";
+import {
+  INetworkDeployment,
+  IRegularDeployment,
+  IUpgradeDeployment,
+  networks,
+} from "../models/Deploy";
 import {
   ProxyAdmin,
   ProxyAdmin__factory,
