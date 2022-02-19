@@ -1,35 +1,41 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity >=0.8.0 <0.9.0;
 
-import { OwnableUpgradeable as Ownable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { TransparentUpgradeableProxy as TUP } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import { Create2Upgradeable as Create2 } from "@openzeppelin/contracts-upgradeable/utils/Create2Upgradeable.sol";
 import { IContractRegistry } from "./interfaces/IContractRegistry.sol";
+import { IContractDeployer } from "./interfaces/IContractDeployer.sol";
 
-contract ContractDeployer {
-  function deploy(
+contract ContractDeployer is IContractDeployer, ProxyAdmin {
+  function deployContract(
     address registry,
     bytes memory bytecode,
     bytes memory data,
     bytes32 salt,
-    bytes30 name,
+    bytes32 name,
     bytes2 version
   ) external {
-    require(bytecode.length > 10, "Bytecode cannot be empty");
+    // calculate sha3 hash of the bytecode
     bytes32 logicCodeHash = keccak256(bytecode);
+    // check if salt is empty and generate a random salt
     if (salt == bytes32(0)) {
       salt = keccak256(abi.encodePacked(bytecode, block.timestamp));
     }
+    // deploy logic/implementation contract
     address logic = Create2.deploy(0, salt, bytecode);
-    address proxy = address(new TUP(logic, msg.sender, data));
+    // deploy proxy/storage contract TransparentUpgradeableProxy
+    address proxy = address(new TransparentUpgradeableProxy(logic, msg.sender, data));
 
-    // the owner is the msg.sender. May or may not be ownable
+    // the owner is the msg.sender. Implementation May or may not be ownable
     try Ownable(proxy).transferOwnership(msg.sender) {} catch {}
 
-    IContractRegistry(registry).register(proxy, logic, name, version, logicCodeHash);
+    if (registry != address(0)) {
+      IContractRegistry(registry).register(proxy, logic, name, version, logicCodeHash);
+    }
+    emit ContractDeployed(registry, proxy, name, version, logicCodeHash);
   }
 
-  function upgrade(
+  function upgradeContract(
     address registry,
     address payable proxy,
     bytes memory bytecode,
@@ -37,30 +43,27 @@ contract ContractDeployer {
     bytes32 salt,
     bytes2 version
   ) external {
-    // Parameter checks
-    require(bytecode.length > 10, "Bytecode cannot be empty");
+    // calculate sha3 hash of the bytecode
     bytes32 logicCodeHash = keccak256(bytecode);
+    // check if salt is empty and generate a random salt
     if (salt == bytes32(0)) {
       salt = keccak256(abi.encodePacked(bytecode, block.timestamp));
     }
+    // deploy new logic/implementation contract
     address logic = Create2.deploy(0, salt, bytecode);
+    // upgrade the new logic/implementation contract
     if (keccak256(data) != keccak256(new bytes(0))) {
-      TUP(proxy).upgradeToAndCall(logic, data);
+      upgradeAndCall(TransparentUpgradeableProxy(proxy), logic, data);
     } else {
-      TUP(proxy).upgradeTo(logic);
+      upgrade(TransparentUpgradeableProxy(proxy), logic);
     }
 
-    // return admin rigths
-    TUP(proxy).changeAdmin(logic);
     // the owner is the msg.sender. May or may not be ownable
     try Ownable(proxy).transferOwnership(msg.sender) {} catch {}
 
-    IContractRegistry(registry).update(
-      proxy,
-      logic,
-      bytes30(0),
-      version,
-      logicCodeHash
-    );
+    if (registry != address(0)) {
+      IContractRegistry(registry).update(proxy, logic, bytes32(0), version, logicCodeHash);
+    }
+    emit ContractUpgraded(registry, proxy, version, logicCodeHash);
   }
 }

@@ -58,27 +58,6 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
     _register(proxy, logic, name, version, logicCodeHash);
   }
 
-  /*   function deploy(
-    bytes memory bytecode,
-    bytes memory data,
-    bytes32 salt,
-    bytes32 name,
-    bytes2 version
-  ) external {
-    require(bytecode.length > 10, "Bytecode cannot be empty");
-    bytes32 logicCodeHash = keccak256(bytecode);
-    if (salt == bytes32(0)) {
-      salt = keccak256(abi.encodePacked(bytecode, block.timestamp));
-    }
-    address logic = Create2.deploy(0, salt, bytecode);
-    address proxy = address(new TUP(logic, _msgSender(), data));
-
-    // the owner is the msg.sender. May or may not be ownable
-    try Ownable(proxy).transferOwnership(_msgSender()) {} catch {}
-
-    _register(proxy, logic, name, version, logicCodeHash);
-  } */
-
   function update(
     address proxy,
     address logic,
@@ -92,34 +71,6 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
     }
     _update(proxy, logic, version, logicCodeHash);
   }
-
-  /* function upgrade(
-    address payable proxy,
-    bytes memory bytecode,
-    bytes memory data,
-    bytes32 salt,
-    bytes2 version
-  ) external {
-    // Parameter checks
-    require(bytecode.length > 10, "Bytecode cannot be empty");
-    bytes32 logicCodeHash = keccak256(bytecode);
-    if (salt == bytes32(0)) {
-      salt = keccak256(abi.encodePacked(bytecode, block.timestamp));
-    }
-    address logic = Create2.deploy(0, salt, bytecode);
-    if (keccak256(data) != keccak256(new bytes(0))) {
-      TUP(proxy).upgradeToAndCall(logic, data);
-    } else {
-      TUP(proxy).upgradeTo(logic);
-    }
-
-    // return admin rigths
-    TUP(proxy).changeAdmin(logic);
-    // the owner is the msg.sender. May or may not be ownable
-    try Ownable(proxy).transferOwnership(_msgSender()) {} catch {}
-
-    _update(proxy, logic, version, logicCodeHash);
-  } */
 
   function changeRegisteredAdmin(bytes32 name, address newAdmin) external {
     // check admin is an address

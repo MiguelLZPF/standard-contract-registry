@@ -202,15 +202,15 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       chainId: 69,
-      blockGasLimit: 0x23c3ffff,
-      gasPrice: 0,
+      blockGasLimit: ENV.NETWORK.DEFAULT.GAS_LIMIT,
+      gasPrice: ENV.NETWORK.DEFAULT.GAS_PRICE,
       hardfork: ENV.NETWORK.DEFAULT.EVM,
     },
     ganache: {
       url: ENV.NETWORK.GANACHE.URL,
       chainId: ENV.NETWORK.GANACHE.CHAINID,
-      blockGasLimit: 600047615,
-      gasPrice: 0,
+      blockGasLimit: ENV.NETWORK.DEFAULT.GAS_LIMIT,
+      gasPrice: ENV.NETWORK.DEFAULT.GAS_PRICE,
       hardfork: ENV.NETWORK.DEFAULT.EVM,
     },
   },

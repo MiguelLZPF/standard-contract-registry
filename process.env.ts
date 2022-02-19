@@ -34,6 +34,8 @@ const PATH = {
 const NETWORK = {
   DEFAULT: {
     EVM: getFromEnvFile("NET_DEFAULT_EVM", undefined) as string | undefined,
+    GAS_LIMIT: getFromEnvFile("NET_DEFAULT_GAS_LIMIT", 0x23c3ffff, true) as number,
+    GAS_PRICE: getFromEnvFile("NET_DEFAULT_GAS_PRICE", 0x00, true) as number,
   },
   HARDHAT: {
     CHAINID: getFromEnvFile("NET_HARDHAT_CHAINID", 69, true) as number,
@@ -55,6 +57,9 @@ const DEPLOY = {
 const CONTRACT = {
   CONTRACT_REGISTRY: {
     NAME: getFromEnvFile("CONTRACT_CONTRACT_REGISTRY_NAME", "ContractRegistry") as string,
+  },
+  CONTRACT_DEPLOYER: {
+    NAME: getFromEnvFile("CONTRACT_CONTRACT_DEPLOYER_NAME", "ContractDeployer") as string,
   },
   EXAMPLE_BALLOT: {
     NAME: getFromEnvFile("CONTRACT_EXAMPLE_STORAGE_NAME", "ExampleBallot") as string,

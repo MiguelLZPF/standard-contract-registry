@@ -37,6 +37,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Proxy__factory>;
     getContractFactory(
+      name: "ProxyAdmin",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ProxyAdmin__factory>;
+    getContractFactory(
       name: "TransparentUpgradeableProxy",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TransparentUpgradeableProxy__factory>;
@@ -64,6 +68,10 @@ declare module "hardhat/types/runtime" {
       name: "ProxyAdmin",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ProxyAdmin__factory>;
+    getContractFactory(
+      name: "IContractDeployer",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IContractDeployer__factory>;
     getContractFactory(
       name: "IContractRegistry",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -100,6 +108,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Proxy>;
     getContractAt(
+      name: "ProxyAdmin",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ProxyAdmin>;
+    getContractAt(
       name: "TransparentUpgradeableProxy",
       address: string,
       signer?: ethers.Signer
@@ -134,6 +147,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.ProxyAdmin>;
+    getContractAt(
+      name: "IContractDeployer",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IContractDeployer>;
     getContractAt(
       name: "IContractRegistry",
       address: string,

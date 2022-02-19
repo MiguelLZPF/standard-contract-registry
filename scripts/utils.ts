@@ -5,6 +5,7 @@ import { constants } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { BlockTag, JsonRpcProvider } from "@ethersproject/providers";
 import { INetwork, networks } from "../models/Deploy";
+import { ENV } from "../process.env";
 
 // Global HRE, Ethers Provider and network parameters
 export let ghre: HardhatRuntimeEnvironment;
@@ -14,8 +15,8 @@ export let gCurrentNetwork: INetwork;
 export const ADDR_ZERO = constants.AddressZero;
 // gas default options
 export const GAS_OPT = {
-  gasLimit: "0x23c3ffff", //"0xffffffff",
-  gasPrice: "0x00",
+  gasLimit: ENV.NETWORK.DEFAULT.GAS_LIMIT,
+  gasPrice: ENV.NETWORK.DEFAULT.GAS_PRICE,
 };
 
 /**
