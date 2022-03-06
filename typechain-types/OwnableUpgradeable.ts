@@ -17,6 +17,7 @@ import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
 export interface OwnableUpgradeableInterface extends utils.Interface {
+  contractName: "OwnableUpgradeable";
   functions: {
     "owner()": FunctionFragment;
     "renounceOwnership()": FunctionFragment;
@@ -59,6 +60,7 @@ export type OwnershipTransferredEventFilter =
   TypedEventFilter<OwnershipTransferredEvent>;
 
 export interface OwnableUpgradeable extends BaseContract {
+  contractName: "OwnableUpgradeable";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;

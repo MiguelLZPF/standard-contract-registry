@@ -18,6 +18,7 @@ import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
 export interface TransparentUpgradeableProxyInterface extends utils.Interface {
+  contractName: "TransparentUpgradeableProxy";
   functions: {
     "admin()": FunctionFragment;
     "changeAdmin(address)": FunctionFragment;
@@ -80,6 +81,7 @@ export type UpgradedEvent = TypedEvent<[string], { implementation: string }>;
 export type UpgradedEventFilter = TypedEventFilter<UpgradedEvent>;
 
 export interface TransparentUpgradeableProxy extends BaseContract {
+  contractName: "TransparentUpgradeableProxy";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;

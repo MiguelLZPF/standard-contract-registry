@@ -16,21 +16,30 @@ import { FunctionFragment, Result, EventFragment } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
-export interface ExampleOwnerInterface extends utils.Interface {
-  contractName: "ExampleOwner";
+export interface ExampleOwnerV2Interface extends utils.Interface {
+  contractName: "ExampleOwnerV2";
   functions: {
     "changeOwner(address)": FunctionFragment;
     "getOwner()": FunctionFragment;
+    "newFunction()": FunctionFragment;
   };
 
   encodeFunctionData(functionFragment: "changeOwner", values: [string]): string;
   encodeFunctionData(functionFragment: "getOwner", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "newFunction",
+    values?: undefined
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "changeOwner",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getOwner", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "newFunction",
+    data: BytesLike
+  ): Result;
 
   events: {
     "OwnerSet(address,address)": EventFragment;
@@ -46,13 +55,13 @@ export type OwnerSetEvent = TypedEvent<
 
 export type OwnerSetEventFilter = TypedEventFilter<OwnerSetEvent>;
 
-export interface ExampleOwner extends BaseContract {
-  contractName: "ExampleOwner";
+export interface ExampleOwnerV2 extends BaseContract {
+  contractName: "ExampleOwnerV2";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
 
-  interface: ExampleOwnerInterface;
+  interface: ExampleOwnerV2Interface;
 
   queryFilter<TEvent extends TypedEvent>(
     event: TypedEventFilter<TEvent>,
@@ -80,6 +89,8 @@ export interface ExampleOwner extends BaseContract {
     ): Promise<ContractTransaction>;
 
     getOwner(overrides?: CallOverrides): Promise<[string]>;
+
+    newFunction(overrides?: CallOverrides): Promise<[BigNumber]>;
   };
 
   changeOwner(
@@ -89,10 +100,14 @@ export interface ExampleOwner extends BaseContract {
 
   getOwner(overrides?: CallOverrides): Promise<string>;
 
+  newFunction(overrides?: CallOverrides): Promise<BigNumber>;
+
   callStatic: {
     changeOwner(newOwner: string, overrides?: CallOverrides): Promise<void>;
 
     getOwner(overrides?: CallOverrides): Promise<string>;
+
+    newFunction(overrides?: CallOverrides): Promise<BigNumber>;
   };
 
   filters: {
@@ -113,6 +128,8 @@ export interface ExampleOwner extends BaseContract {
     ): Promise<BigNumber>;
 
     getOwner(overrides?: CallOverrides): Promise<BigNumber>;
+
+    newFunction(overrides?: CallOverrides): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -122,5 +139,7 @@ export interface ExampleOwner extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     getOwner(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    newFunction(overrides?: CallOverrides): Promise<PopulatedTransaction>;
   };
 }

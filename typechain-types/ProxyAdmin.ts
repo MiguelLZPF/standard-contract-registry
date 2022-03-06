@@ -18,6 +18,7 @@ import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
 export interface ProxyAdminInterface extends utils.Interface {
+  contractName: "ProxyAdmin";
   functions: {
     "changeProxyAdmin(address,address)": FunctionFragment;
     "getProxyAdmin(address)": FunctionFragment;
@@ -102,6 +103,7 @@ export type OwnershipTransferredEventFilter =
   TypedEventFilter<OwnershipTransferredEvent>;
 
 export interface ProxyAdmin extends BaseContract {
+  contractName: "ProxyAdmin";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;

@@ -14,32 +14,32 @@ import { FunctionFragment, Result } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
-export interface IBeaconInterface extends utils.Interface {
-  contractName: "IBeacon";
+export interface IERC1822ProxiableInterface extends utils.Interface {
+  contractName: "IERC1822Proxiable";
   functions: {
-    "implementation()": FunctionFragment;
+    "proxiableUUID()": FunctionFragment;
   };
 
   encodeFunctionData(
-    functionFragment: "implementation",
+    functionFragment: "proxiableUUID",
     values?: undefined
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "implementation",
+    functionFragment: "proxiableUUID",
     data: BytesLike
   ): Result;
 
   events: {};
 }
 
-export interface IBeacon extends BaseContract {
-  contractName: "IBeacon";
+export interface IERC1822Proxiable extends BaseContract {
+  contractName: "IERC1822Proxiable";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
 
-  interface: IBeaconInterface;
+  interface: IERC1822ProxiableInterface;
 
   queryFilter<TEvent extends TypedEvent>(
     event: TypedEventFilter<TEvent>,
@@ -61,22 +61,22 @@ export interface IBeacon extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    implementation(overrides?: CallOverrides): Promise<[string]>;
+    proxiableUUID(overrides?: CallOverrides): Promise<[string]>;
   };
 
-  implementation(overrides?: CallOverrides): Promise<string>;
+  proxiableUUID(overrides?: CallOverrides): Promise<string>;
 
   callStatic: {
-    implementation(overrides?: CallOverrides): Promise<string>;
+    proxiableUUID(overrides?: CallOverrides): Promise<string>;
   };
 
   filters: {};
 
   estimateGas: {
-    implementation(overrides?: CallOverrides): Promise<BigNumber>;
+    proxiableUUID(overrides?: CallOverrides): Promise<BigNumber>;
   };
 
   populateTransaction: {
-    implementation(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    proxiableUUID(overrides?: CallOverrides): Promise<PopulatedTransaction>;
   };
 }

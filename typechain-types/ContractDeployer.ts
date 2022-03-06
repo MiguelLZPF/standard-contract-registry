@@ -18,6 +18,7 @@ import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
 export interface ContractDeployerInterface extends utils.Interface {
+  contractName: "ContractDeployer";
   functions: {
     "changeProxyAdmin(address,address)": FunctionFragment;
     "deployContract(address,bytes,bytes,bytes32,bytes32,bytes2)": FunctionFragment;
@@ -146,6 +147,7 @@ export type OwnershipTransferredEventFilter =
   TypedEventFilter<OwnershipTransferredEvent>;
 
 export interface ContractDeployer extends BaseContract {
+  contractName: "ContractDeployer";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
@@ -346,14 +348,14 @@ export interface ContractDeployer extends BaseContract {
 
   filters: {
     "ContractDeployed(address,address,bytes32,bytes2,bytes32)"(
-      registry?: string | null,
+      registry?: null,
       proxy?: string | null,
       name?: null,
       version?: BytesLike | null,
       logicCodeHash?: null
     ): ContractDeployedEventFilter;
     ContractDeployed(
-      registry?: string | null,
+      registry?: null,
       proxy?: string | null,
       name?: null,
       version?: BytesLike | null,

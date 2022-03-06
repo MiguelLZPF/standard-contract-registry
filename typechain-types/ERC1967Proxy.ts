@@ -7,6 +7,7 @@ import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
 export interface ERC1967ProxyInterface extends utils.Interface {
+  contractName: "ERC1967Proxy";
   functions: {};
 
   events: {
@@ -36,6 +37,7 @@ export type UpgradedEvent = TypedEvent<[string], { implementation: string }>;
 export type UpgradedEventFilter = TypedEventFilter<UpgradedEvent>;
 
 export interface ERC1967Proxy extends BaseContract {
+  contractName: "ERC1967Proxy";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;

@@ -18,6 +18,7 @@ import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
 export interface ExampleStorageInterface extends utils.Interface {
+  contractName: "ExampleStorage";
   functions: {
     "retrieve()": FunctionFragment;
     "store(uint256)": FunctionFragment;
@@ -33,6 +34,7 @@ export interface ExampleStorageInterface extends utils.Interface {
 }
 
 export interface ExampleStorage extends BaseContract {
+  contractName: "ExampleStorage";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;

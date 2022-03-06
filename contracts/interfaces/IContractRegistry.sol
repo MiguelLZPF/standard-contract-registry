@@ -59,7 +59,7 @@ interface IContractRegistry {
     bytes32 logicCodeHash
   ) external;
 
-  function changeRegisteredAdmin(bytes32 name, address newAdmin) external;
+  function changeRegisteredAdmin(address proxy, address newAdmin) external;
 
   function getRecord(address proxy)
     external

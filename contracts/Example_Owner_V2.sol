@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
  * @title Owner
  * @dev Set & change owner
  */
-contract ExampleOwner is Initializable {
+contract ExampleOwnerV2 is Initializable {
   address private owner;
 
   // event for EVM logging
@@ -42,6 +42,10 @@ contract ExampleOwner is Initializable {
   function changeOwner(address newOwner) public isOwner {
     emit OwnerSet(owner, newOwner);
     owner = newOwner;
+  }
+
+  function newFunction() public view returns (uint256) {
+    return block.timestamp;
   }
 
   /**

@@ -38,7 +38,7 @@ const _abi = [
 ];
 
 const _bytecode =
-  "0x6080604052348015600f57600080fd5b5060ac8061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80632e64cec11460375780636057361d14604c575b600080fd5b60005460405190815260200160405180910390f35b605c6057366004605e565b600055565b005b600060208284031215606f57600080fd5b503591905056fea26469706673582212205cbcf28d9d9402b5e489be8d810185c4e841400943a5d25e6f24468e096d680564736f6c634300080a0033";
+  "0x6080604052348015600f57600080fd5b5060ac8061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80632e64cec11460375780636057361d14604c575b600080fd5b60005460405190815260200160405180910390f35b605c6057366004605e565b600055565b005b600060208284031215606f57600080fd5b503591905056fea264697066735822122045d978f067449b475cddb1b55da2dfaa7ce5094ad6355ead5ca7d1299680035d64736f6c634300080c0033";
 
 type ExampleStorageConstructorParams =
   | [signer?: Signer]
@@ -55,6 +55,7 @@ export class ExampleStorage__factory extends ContractFactory {
     } else {
       super(_abi, _bytecode, args[0]);
     }
+    this.contractName = "ExampleStorage";
   }
 
   deploy(
@@ -73,6 +74,8 @@ export class ExampleStorage__factory extends ContractFactory {
   connect(signer: Signer): ExampleStorage__factory {
     return super.connect(signer) as ExampleStorage__factory;
   }
+  static readonly contractName: "ExampleStorage";
+  public readonly contractName: "ExampleStorage";
   static readonly bytecode = _bytecode;
   static readonly abi = _abi;
   static createInterface(): ExampleStorageInterface {

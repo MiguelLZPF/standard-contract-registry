@@ -17,6 +17,7 @@ import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
 export interface IContractDeployerInterface extends utils.Interface {
+  contractName: "IContractDeployer";
   functions: {
     "deployContract(address,bytes,bytes,bytes32,bytes32,bytes2)": FunctionFragment;
     "upgradeContract(address,address,bytes,bytes,bytes32,bytes2)": FunctionFragment;
@@ -72,6 +73,7 @@ export type ContractUpgradedEventFilter =
   TypedEventFilter<ContractUpgradedEvent>;
 
 export interface IContractDeployer extends BaseContract {
+  contractName: "IContractDeployer";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
@@ -163,14 +165,14 @@ export interface IContractDeployer extends BaseContract {
 
   filters: {
     "ContractDeployed(address,address,bytes32,bytes2,bytes32)"(
-      registry?: string | null,
+      registry?: null,
       proxy?: string | null,
       name?: null,
       version?: BytesLike | null,
       logicCodeHash?: null
     ): ContractDeployedEventFilter;
     ContractDeployed(
-      registry?: string | null,
+      registry?: null,
       proxy?: string | null,
       name?: null,
       version?: BytesLike | null,

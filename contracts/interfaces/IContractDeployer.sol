@@ -1,6 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity >=0.8.0 <0.9.0;
 
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { IContractRegistry } from "./IContractRegistry.sol";
+
 struct ContractRecord {
   address proxy; // use as ID too
   address logic;
@@ -21,7 +24,7 @@ struct ContractRecord {
 interface IContractDeployer {
   // EVENTS
   event ContractDeployed(
-    address indexed registry,
+    address registry,
     address indexed proxy,
     bytes32 name,
     bytes2 indexed version,
@@ -34,11 +37,19 @@ interface IContractDeployer {
     bytes32 logicCodeHash
   );
 
+  // event CatchedError(
+  //   string method,
+  //   uint8 indexed type_,
+  //   string message,
+  //   bytes lowLevelData,
+  //   uint256 errorCode
+  // );
+
   // =========
   // FUNCTIONS
 
   function deployContract(
-    address registry,
+    IContractRegistry registry,
     bytes calldata bytecode,
     bytes memory data,
     bytes32 salt,
@@ -47,8 +58,8 @@ interface IContractDeployer {
   ) external;
 
   function upgradeContract(
-    address registry,
-    address payable proxy,
+    IContractRegistry registry,
+    TransparentUpgradeableProxy proxy,
     bytes calldata bytecode,
     bytes calldata data,
     bytes32 salt,

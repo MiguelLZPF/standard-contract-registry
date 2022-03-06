@@ -13,6 +13,7 @@ import {
   ExampleOwner__factory,
   ExampleStorage,
   ExampleStorage__factory,
+  IContractRegistry,
   ProxyAdmin,
   ProxyAdmin__factory,
   TransparentUpgradeableProxy__factory as TUP__factory,
@@ -157,7 +158,7 @@ describe("Contract Registry - Deploy and Initialization", async function () {
     contractRegistry.on(
       contractRegistry.filters.Updated(),
       async (proxy, name, version, logicCodeHash, event) => {
-        const nameString = Buffer.from(name, "hex").toString("utf-8");
+        const nameString = Buffer.from(name.substring(2), "hex").toString("utf-8");
         const versionStr = await versionHexStringToDot(version);
         const blockTime = (await event.getBlock()).timestamp;
         console.log(
@@ -173,7 +174,7 @@ describe("Contract Registry - Deploy and Initialization", async function () {
     contractRegistry.on(
       contractRegistry.filters.AdminChanged(),
       async (oldAdmin, newAdmin, name, event) => {
-        const nameString = Buffer.from(name, "hex").toString("utf-8");
+        const nameString = Buffer.from(name.substring(2), "hex").toString("utf-8");
         const blockTime = (await event.getBlock()).timestamp;
         console.log(
           `New Admin Changed: { Old Admin: ${oldAdmin}, New Admin: ${newAdmin}, Record Name: ${nameString}} at Block ${
@@ -316,7 +317,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
   // GET RECORD
   step("Should check if Example Storage is registered", async () => {
     // use contract object to use user0.address in call
-    await checkRecord(contractRegistry.connect(users[0]), exampleStorage.address, {
+    await checkRecord(contractRegistry as unknown as IContractRegistry, exampleStorage.address, {
       found: true,
       proxy: exampleStorage.address,
       logic: exampleStorage.address,
@@ -357,7 +358,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
   it("Should FAIL to change admin witout new admin address", async () => {
     await expect(
       contractRegistry.changeRegisteredAdmin(
-        ANOTHER_NAME_HEXSTRING, // Not used
+        exampleStorage.address, // Not used
         ADDR_ZERO, //! <--
         GAS_OPT
       )
@@ -366,7 +367,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
   it("Should FAIL to change admin to same admin", async () => {
     await expect(
       contractRegistry.changeRegisteredAdmin(
-        ANOTHER_NAME_HEXSTRING,
+        exampleStorage.address,
         users[0].address, //! <--
         GAS_OPT
       )
@@ -375,7 +376,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
   it("Should FAIL to change admin of unregistered contract", async () => {
     await expect(
       contractRegistry.changeRegisteredAdmin(
-        ANOTHER_NAME_HEXSTRING, //! <--
+        users[0].address, //! <--
         users[1].address, // Not used
         GAS_OPT
       )
@@ -384,7 +385,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
   it("Should change admin of example contract", async () => {
     const receipt = await (
       await contractRegistry.changeRegisteredAdmin(
-        EXAMPLE_STORAGE_NAME_HEXSTRING,
+        exampleStorage.address,
         users[1].address,
         GAS_OPT
       )
@@ -487,7 +488,7 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
   // GET RECORD
   step("Should check if Example Storage is registered", async () => {
     // use contract object to use user0.address in call
-    await checkRecord(contractRegistry.connect(users[2]), exampleStorage.address, {
+    await checkRecord(contractRegistry as unknown as IContractRegistry, exampleStorage.address, {
       found: true,
       proxy: exampleStorage.address,
       logic: await proxyAdmin.getProxyImplementation(exampleStorage.address),
@@ -555,7 +556,8 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
   });
   it("Should FAIL to update from other 'admin'", async () => {
     await expect(
-      contractRegistry.connect(users[0]).update( //! <--
+      contractRegistry.connect(users[0]).update(
+        //! <--
         exampleStorage.address,
         await proxyAdmin.getProxyImplementation(exampleStorage.address),
         NAME_HEXSTRING_ZERO,
@@ -565,7 +567,6 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
       )
     ).to.be.revertedWith(REVERT_MESSAGES.update.notAdmin);
   });
-  // TODO: reverts
   step("Should update Example Storage upgradeable contract", async () => {
     const receipt = await (
       await contractRegistry.update(
@@ -584,7 +585,7 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
   // GET RECORD
   step("Should check if Example Storage is updated", async () => {
     // use contract object to use user0.address in call
-    await checkRecord(contractRegistry.connect(users[2]), exampleStorage.address, {
+    await checkRecord(contractRegistry as unknown as IContractRegistry, exampleStorage.address, {
       found: true,
       proxy: exampleStorage.address,
       logic: await proxyAdmin.getProxyImplementation(exampleStorage.address),

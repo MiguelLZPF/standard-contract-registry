@@ -7,12 +7,14 @@ import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
 export interface ProxyInterface extends utils.Interface {
+  contractName: "Proxy";
   functions: {};
 
   events: {};
 }
 
 export interface Proxy extends BaseContract {
+  contractName: "Proxy";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;

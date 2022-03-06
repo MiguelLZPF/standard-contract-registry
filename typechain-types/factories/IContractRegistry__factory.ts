@@ -100,9 +100,9 @@ const _abi = [
   {
     inputs: [
       {
-        internalType: "bytes32",
-        name: "name",
-        type: "bytes32",
+        internalType: "address",
+        name: "proxy",
+        type: "address",
       },
       {
         internalType: "address",

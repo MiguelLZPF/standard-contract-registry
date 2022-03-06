@@ -2,7 +2,7 @@ import * as dotenv from "dotenv";
 import dotendExpand from "dotenv-expand";
 
 const myEnv = dotenv.config({ path: __dirname + "/.env" });
-dotendExpand(myEnv);
+dotendExpand.expand(myEnv);
 
 const getFromEnvFile = (name: string, defaultValue?: string | number, isNumber?: boolean) => {
   const constant = process.env[name];
@@ -33,6 +33,7 @@ const PATH = {
 
 const NETWORK = {
   DEFAULT: {
+    SOLIDITY: getFromEnvFile("NET_DEFAULT_SOL", undefined) as string | undefined,
     EVM: getFromEnvFile("NET_DEFAULT_EVM", undefined) as string | undefined,
     GAS_LIMIT: getFromEnvFile("NET_DEFAULT_GAS_LIMIT", 0x23c3ffff, true) as number,
     GAS_PRICE: getFromEnvFile("NET_DEFAULT_GAS_PRICE", 0x00, true) as number,

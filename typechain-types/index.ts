@@ -3,6 +3,7 @@
 /* eslint-disable */
 export type { OwnableUpgradeable } from "./OwnableUpgradeable";
 export type { Ownable } from "./Ownable";
+export type { IERC1822Proxiable } from "./IERC1822Proxiable";
 export type { IBeacon } from "./IBeacon";
 export type { ERC1967Proxy } from "./ERC1967Proxy";
 export type { ERC1967Upgrade } from "./ERC1967Upgrade";
@@ -12,6 +13,7 @@ export type { TransparentUpgradeableProxy } from "./TransparentUpgradeableProxy"
 export type { ContractDeployer } from "./ContractDeployer";
 export type { ContractRegistry } from "./ContractRegistry";
 export type { ExampleBallot } from "./ExampleBallot";
+export type { ExampleOwnerV2 } from "./ExampleOwnerV2";
 export type { ExampleOwner } from "./ExampleOwner";
 export type { ExampleStorage } from "./ExampleStorage";
 export type { IContractDeployer } from "./IContractDeployer";
@@ -19,6 +21,7 @@ export type { IContractRegistry } from "./IContractRegistry";
 
 export { OwnableUpgradeable__factory } from "./factories/OwnableUpgradeable__factory";
 export { Ownable__factory } from "./factories/Ownable__factory";
+export { IERC1822Proxiable__factory } from "./factories/IERC1822Proxiable__factory";
 export { IBeacon__factory } from "./factories/IBeacon__factory";
 export { ERC1967Proxy__factory } from "./factories/ERC1967Proxy__factory";
 export { ERC1967Upgrade__factory } from "./factories/ERC1967Upgrade__factory";
@@ -28,6 +31,7 @@ export { TransparentUpgradeableProxy__factory } from "./factories/TransparentUpg
 export { ContractDeployer__factory } from "./factories/ContractDeployer__factory";
 export { ContractRegistry__factory } from "./factories/ContractRegistry__factory";
 export { ExampleBallot__factory } from "./factories/ExampleBallot__factory";
+export { ExampleOwnerV2__factory } from "./factories/ExampleOwnerV2__factory";
 export { ExampleOwner__factory } from "./factories/ExampleOwner__factory";
 export { ExampleStorage__factory } from "./factories/ExampleStorage__factory";
 export { IContractDeployer__factory } from "./factories/IContractDeployer__factory";

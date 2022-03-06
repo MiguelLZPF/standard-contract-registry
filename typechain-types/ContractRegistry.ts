@@ -52,8 +52,9 @@ export type ContractRecordStructOutput = [
 };
 
 export interface ContractRegistryInterface extends utils.Interface {
+  contractName: "ContractRegistry";
   functions: {
-    "changeRegisteredAdmin(bytes32,address)": FunctionFragment;
+    "changeRegisteredAdmin(address,address)": FunctionFragment;
     "getMyRecords()": FunctionFragment;
     "getRecord(address)": FunctionFragment;
     "getRecordByName(bytes32,address)": FunctionFragment;
@@ -68,7 +69,7 @@ export interface ContractRegistryInterface extends utils.Interface {
 
   encodeFunctionData(
     functionFragment: "changeRegisteredAdmin",
-    values: [BytesLike, string]
+    values: [string, string]
   ): string;
   encodeFunctionData(
     functionFragment: "getMyRecords",
@@ -178,6 +179,7 @@ export type UpdatedEvent = TypedEvent<
 export type UpdatedEventFilter = TypedEventFilter<UpdatedEvent>;
 
 export interface ContractRegistry extends BaseContract {
+  contractName: "ContractRegistry";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
@@ -205,7 +207,7 @@ export interface ContractRegistry extends BaseContract {
 
   functions: {
     changeRegisteredAdmin(
-      name: BytesLike,
+      proxy: string,
       newAdmin: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
@@ -278,7 +280,7 @@ export interface ContractRegistry extends BaseContract {
   };
 
   changeRegisteredAdmin(
-    name: BytesLike,
+    proxy: string,
     newAdmin: string,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
@@ -347,7 +349,7 @@ export interface ContractRegistry extends BaseContract {
 
   callStatic: {
     changeRegisteredAdmin(
-      name: BytesLike,
+      proxy: string,
       newAdmin: string,
       overrides?: CallOverrides
     ): Promise<void>;
@@ -463,7 +465,7 @@ export interface ContractRegistry extends BaseContract {
 
   estimateGas: {
     changeRegisteredAdmin(
-      name: BytesLike,
+      proxy: string,
       newAdmin: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
@@ -520,7 +522,7 @@ export interface ContractRegistry extends BaseContract {
 
   populateTransaction: {
     changeRegisteredAdmin(
-      name: BytesLike,
+      proxy: string,
       newAdmin: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;

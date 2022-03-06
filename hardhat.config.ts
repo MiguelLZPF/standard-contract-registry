@@ -190,7 +190,7 @@ task("quick-test", "Random quick testing function")
 // Go to https://hardhat.org/config/ to learn more
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.10",
+    version: ENV.NETWORK.DEFAULT.SOLIDITY!,
     settings: {
       optimizer: {
         enabled: true,

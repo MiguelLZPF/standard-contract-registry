@@ -18,6 +18,7 @@ import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
 export interface ExampleBallotInterface extends utils.Interface {
+  contractName: "ExampleBallot";
   functions: {
     "chairperson()": FunctionFragment;
     "delegate(address)": FunctionFragment;
@@ -75,6 +76,7 @@ export interface ExampleBallotInterface extends utils.Interface {
 }
 
 export interface ExampleBallot extends BaseContract {
+  contractName: "ExampleBallot";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;

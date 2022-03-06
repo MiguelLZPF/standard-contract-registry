@@ -14,7 +14,7 @@ const _abi = [
     anonymous: false,
     inputs: [
       {
-        indexed: true,
+        indexed: false,
         internalType: "address",
         name: "registry",
         type: "address",
@@ -81,7 +81,7 @@ const _abi = [
   {
     inputs: [
       {
-        internalType: "address",
+        internalType: "contract IContractRegistry",
         name: "registry",
         type: "address",
       },
@@ -119,12 +119,12 @@ const _abi = [
   {
     inputs: [
       {
-        internalType: "address",
+        internalType: "contract IContractRegistry",
         name: "registry",
         type: "address",
       },
       {
-        internalType: "address payable",
+        internalType: "contract TransparentUpgradeableProxy",
         name: "proxy",
         type: "address",
       },

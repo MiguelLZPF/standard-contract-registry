@@ -21,6 +21,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Ownable__factory>;
     getContractFactory(
+      name: "IERC1822Proxiable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC1822Proxiable__factory>;
+    getContractFactory(
       name: "IBeacon",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IBeacon__factory>;
@@ -57,6 +61,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ExampleBallot__factory>;
     getContractFactory(
+      name: "ExampleOwnerV2",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ExampleOwnerV2__factory>;
+    getContractFactory(
       name: "ExampleOwner",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ExampleOwner__factory>;
@@ -87,6 +95,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.Ownable>;
+    getContractAt(
+      name: "IERC1822Proxiable",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC1822Proxiable>;
     getContractAt(
       name: "IBeacon",
       address: string,
@@ -132,6 +145,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.ExampleBallot>;
+    getContractAt(
+      name: "ExampleOwnerV2",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ExampleOwnerV2>;
     getContractAt(
       name: "ExampleOwner",
       address: string,

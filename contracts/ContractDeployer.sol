@@ -8,13 +8,14 @@ import { IContractDeployer } from "./interfaces/IContractDeployer.sol";
 
 contract ContractDeployer is IContractDeployer, ProxyAdmin {
   function deployContract(
-    address registry,
+    IContractRegistry registry,
     bytes memory bytecode,
     bytes memory data,
     bytes32 salt,
     bytes32 name,
     bytes2 version
   ) external {
+    address registryAddr = address(registry);
     // calculate sha3 hash of the bytecode
     bytes32 logicCodeHash = keccak256(bytecode);
     // check if salt is empty and generate a random salt
@@ -24,25 +25,29 @@ contract ContractDeployer is IContractDeployer, ProxyAdmin {
     // deploy logic/implementation contract
     address logic = Create2.deploy(0, salt, bytecode);
     // deploy proxy/storage contract TransparentUpgradeableProxy
-    address proxy = address(new TransparentUpgradeableProxy(logic, msg.sender, data));
+    address proxy = address(new TransparentUpgradeableProxy(logic, address(this), data));
 
     // the owner is the msg.sender. Implementation May or may not be ownable
-    try Ownable(proxy).transferOwnership(msg.sender) {} catch {}
+    try Ownable(proxy).transferOwnership(_msgSender()) {} catch {}
 
-    if (registry != address(0)) {
-      IContractRegistry(registry).register(proxy, logic, name, version, logicCodeHash);
+    if (registryAddr != address(0)) {
+      registry.register(proxy, logic, name, version, logicCodeHash);
+      // return control of the proxy
+      registry.changeRegisteredAdmin(proxy, _msgSender());
     }
-    emit ContractDeployed(registry, proxy, name, version, logicCodeHash);
+    emit ContractDeployed(registryAddr, proxy, name, version, logicCodeHash);
   }
 
   function upgradeContract(
-    address registry,
-    address payable proxy,
+    IContractRegistry registry,
+    TransparentUpgradeableProxy proxy,
     bytes memory bytecode,
     bytes memory data,
     bytes32 salt,
     bytes2 version
   ) external {
+    address registryAddr = address(registry);
+    address proxyAddr = address(proxy);
     // calculate sha3 hash of the bytecode
     bytes32 logicCodeHash = keccak256(bytecode);
     // check if salt is empty and generate a random salt
@@ -53,17 +58,19 @@ contract ContractDeployer is IContractDeployer, ProxyAdmin {
     address logic = Create2.deploy(0, salt, bytecode);
     // upgrade the new logic/implementation contract
     if (keccak256(data) != keccak256(new bytes(0))) {
-      upgradeAndCall(TransparentUpgradeableProxy(proxy), logic, data);
+      upgradeAndCall(proxy, logic, data);
     } else {
-      upgrade(TransparentUpgradeableProxy(proxy), logic);
+      upgrade(proxy, logic);
     }
 
     // the owner is the msg.sender. May or may not be ownable
-    try Ownable(proxy).transferOwnership(msg.sender) {} catch {}
+    try Ownable(proxyAddr).transferOwnership(_msgSender()) {} catch {}
 
-    if (registry != address(0)) {
-      IContractRegistry(registry).update(proxy, logic, bytes32(0), version, logicCodeHash);
+    if (registryAddr != address(0)) {
+      IContractRegistry(registry).update(proxyAddr, logic, bytes32(0), version, logicCodeHash);
+      // return control of the proxy
+      IContractRegistry(registry).changeRegisteredAdmin(proxyAddr, _msgSender());
     }
-    emit ContractUpgraded(registry, proxy, version, logicCodeHash);
+    emit ContractUpgraded(registryAddr, proxyAddr, version, logicCodeHash);
   }
 }

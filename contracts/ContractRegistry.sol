@@ -67,30 +67,34 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
   ) external {
     if (proxy == address(0) && actualName != bytes32(0)) {
       // get proxy adress
-      proxy = nameToProxy[msg.sender][keccak256(abi.encodePacked(actualName))];
+      proxy = nameToProxy[_msgSender()][keccak256(abi.encodePacked(actualName))];
     }
     _update(proxy, logic, version, logicCodeHash);
   }
 
-  function changeRegisteredAdmin(bytes32 name, address newAdmin) external {
+  function changeRegisteredAdmin(address proxy, address newAdmin) external {
     // check admin is an address
     require(newAdmin != address(0), "New admin address needed");
     // check that new admin is different from msg.sender
-    require(newAdmin != msg.sender, "New admin address equals sender");
+    require(newAdmin != _msgSender(), "New admin address equals sender");
     // change in record
-    ContractRecord storage record = contractRecords[
-      nameToProxy[msg.sender][keccak256(abi.encodePacked(name))]
-    ];
+    ContractRecord storage record = contractRecords[proxy];
     // check if registered
     require(record.rat != 0, "Contract not registered");
+    // check if msg.sender == admin
+    require(record.admin == _msgSender(), "You are not the admin");
     // remove record in array
-    _removeRecordAdmin(adminRecordNames[msg.sender], record.index);
+    _removeRecordAdmin(adminRecordNames[record.admin], record.index);
+    // remove record in translate mapping
+    nameToProxy[record.admin][keccak256(abi.encodePacked(record.name))] = address(0);
     // update index in record
-    record.index = uint16(adminRecordNames[record.admin].length);
+    record.index = uint16(adminRecordNames[newAdmin].length);
     // add record name in admins's array
-    adminRecordNames[newAdmin].push(name);
+    adminRecordNames[newAdmin].push(record.name);
+    // add record in translate mapping
+    nameToProxy[newAdmin][keccak256(abi.encodePacked(record.name))] = proxy;
     // update actual record admin
-    emit AdminChanged(record.admin, newAdmin, name);
+    emit AdminChanged(record.admin, newAdmin, record.name);
     record.admin = newAdmin;
   }
 
@@ -108,7 +112,7 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
     returns (bool found, ContractRecord memory record)
   {
     if (admin == address(0)) {
-      admin = msg.sender;
+      admin = _msgSender();
     }
     return _getRecord(nameToProxy[admin][keccak256(abi.encodePacked(name))]);
   }
@@ -136,7 +140,7 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
     }
     bytes32 nameHash = keccak256(abi.encodePacked(name));
     require(
-      name != bytes32(0) && nameToProxy[msg.sender][nameHash] == address(0),
+      name != bytes32(0) && nameToProxy[_msgSender()][nameHash] == address(0),
       "Name must be unique or null"
     );
     // Other checks
@@ -154,7 +158,7 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
     record.uat = block.timestamp;
     record.index = uint16(adminRecordNames[record.admin].length);
     // Store proxy by name
-    nameToProxy[msg.sender][nameHash] = proxy;
+    nameToProxy[_msgSender()][nameHash] = proxy;
     // store admin's name list
     adminRecordNames[record.admin].push(name);
     // events
