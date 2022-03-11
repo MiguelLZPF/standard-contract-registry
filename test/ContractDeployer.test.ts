@@ -14,13 +14,10 @@ import {
   ExampleOwnerV2__factory,
   ExampleOwner__factory,
   ExampleStorage,
-  ExampleStorage__factory,
   IContractRegistry,
 } from "../typechain-types";
 import { keccak256 } from "@ethersproject/keccak256";
-import { randomBytes } from "crypto";
 import {
-  ADDR_ZERO,
   delay,
   GAS_OPT,
   getTimeStamp,
@@ -37,7 +34,6 @@ import {
   versionDotToHexString,
 } from "../scripts/contractRegistry";
 import { Contract } from "ethers";
-import { defaultAbiCoder } from "ethers/lib/utils";
 
 // Generic Constants
 let PROVIDER: JsonRpcProvider;

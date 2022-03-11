@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity >=0.8.0 <0.9.0;
 
+// represents a contract record or a deployment of a contract in blockchain
 struct ContractRecord {
   address proxy; // use as ID too
   address logic;
@@ -20,18 +21,21 @@ struct ContractRecord {
  */
 interface IContractRegistry {
   // EVENTS
+  // should be emited when a contract record is registered
   event Registered(
     address indexed proxy,
     bytes32 name,
     bytes2 indexed version,
     bytes32 indexed logicCodeHash
   );
+  // should be emited when a contract record is updated
   event Updated(
     address indexed proxy,
     bytes32 name,
     bytes2 indexed version,
     bytes32 indexed logicCodeHash
   );
+  // should be emited when a contract record changes it's registered admin
   event AdminChanged(address indexed oldAdmin, address indexed newAdmin, bytes32 name);
 
   // =========
