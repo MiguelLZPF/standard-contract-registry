@@ -200,8 +200,11 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
   @param index the index of the record to be removed
    */
   function _removeRecordAdmin(bytes32[] storage names, uint16 index) internal {
+    // for each name in names from index forward, names[i] <- names[i+1] <- names [i+2]
     for (uint16 i = index; i < names.length - 1; i++) {
       names[i] = names[i + 1];
+      // update index of the other elemtents in the array
+      contractRecords[nameToProxy[_msgSender()][names[i]]].index = i + 1;
     }
     names.pop();
   }
