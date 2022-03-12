@@ -26,7 +26,7 @@ import {
 } from "../scripts/utils";
 import { INetwork } from "../models/Deploy";
 import { JsonRpcProvider } from "@ethersproject/providers";
-import { ENV } from "../process.env";
+import { ENV } from "../configuration";
 import {
   IExpectedRecord,
   checkRecord,
@@ -73,7 +73,7 @@ before("Initialize test environment and const/var", async () => {
   // Create random test wallets
   try {
     admin = Wallet.createRandom().connect(PROVIDER);
-    for (let u = 0; u < ENV.WALLET.TEST.USER_NUMBER; u++) {
+    for (let u = 0; u < ENV.KEYSTORE.test.userNumber; u++) {
       users[u] = Wallet.createRandom().connect(PROVIDER);
       console.log(`
         User N=${u}: 
@@ -84,27 +84,27 @@ before("Initialize test environment and const/var", async () => {
     }
     // Contract names as hexadecimal string with fixed length
     CONTRACT_REGISTRY_NAME_HEXSTRING = await stringToStringHexFixed(
-      ENV.CONTRACT.CONTRACT_REGISTRY.NAME,
+      ENV.CONTRACT.contractRegistry.name,
       32
     );
     CONTRACT_DEPLOYER_NAME_HEXSTRING = await stringToStringHexFixed(
-      ENV.CONTRACT.CONTRACT_DEPLOYER.NAME,
+      ENV.CONTRACT.contractDeployer.name,
       32
     );
     EXAMPLE_BALLOT_NAME_HEXSTRING = await stringToStringHexFixed(
-      ENV.CONTRACT.EXAMPLE_BALLOT.NAME,
+      ENV.CONTRACT.exampleBallot.name,
       32
     );
     EXAMPLE_OWNER_NAME_HEXSTRING = await stringToStringHexFixed(
-      ENV.CONTRACT.EXAMPLE_OWNER.NAME,
+      ENV.CONTRACT.exampleOwner.name,
       32
     );
     EXAMPLE_STORAGE_NAME_HEXSTRING = await stringToStringHexFixed(
-      ENV.CONTRACT.EXAMPLE_STORAGE.NAME,
+      ENV.CONTRACT.exampleStorage.name,
       32
     );
     ANOTHER_NAME_HEXSTRING = await stringToStringHexFixed(
-      ENV.CONTRACT.EXAMPLE_BALLOT.NAME + "_BAD!!!!",
+      ENV.CONTRACT.exampleBallot.name + "_BAD!!!!",
       32
     );
   } catch (error) {

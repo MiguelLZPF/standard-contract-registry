@@ -1,4 +1,4 @@
-import { ENV } from "../process.env";
+import { ENV } from "../configuration";
 
 export interface INetwork {
   chainId: number;
@@ -9,16 +9,16 @@ export interface INetwork {
 export const networks = new Map<number | undefined, INetwork>([
   [
     undefined,
-    { chainId: ENV.NETWORK.HARDHAT.CHAINID, name: "hardhat", url: ENV.NETWORK.HARDHAT.URL },
+    { chainId: ENV.NETWORK.hardhat.chainId, name: "hardhat", url: ENV.NETWORK.hardhat.url },
   ], // Default hardhat
-  [0, { chainId: ENV.NETWORK.HARDHAT.CHAINID, name: "hardhat", url: ENV.NETWORK.HARDHAT.URL }], // Default hardhat
+  [0, { chainId: ENV.NETWORK.hardhat.chainId, name: "hardhat", url: ENV.NETWORK.hardhat.url }], // Default hardhat
   [
-    ENV.NETWORK.HARDHAT.CHAINID,
-    { chainId: ENV.NETWORK.HARDHAT.CHAINID, name: "hardhat", url: ENV.NETWORK.HARDHAT.URL },
+    ENV.NETWORK.hardhat.chainId,
+    { chainId: ENV.NETWORK.hardhat.chainId, name: "hardhat", url: ENV.NETWORK.hardhat.url },
   ],
   [
-    ENV.NETWORK.GANACHE.CHAINID,
-    { chainId: ENV.NETWORK.HARDHAT.CHAINID, name: "ganache", url: ENV.NETWORK.GANACHE.URL },
+    ENV.NETWORK.ganache.chainId,
+    { chainId: ENV.NETWORK.hardhat.chainId, name: "ganache", url: ENV.NETWORK.ganache.url },
   ],
 ]);
 

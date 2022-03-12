@@ -1,5 +1,5 @@
 import * as fs from "async-file";
-import { ENV } from "../process.env";
+import { ENV } from "../configuration";
 import { Wallet } from "@ethersproject/wallet";
 import { checkDirectoriesInPath } from "./utils";
 
@@ -18,11 +18,11 @@ export const generateWalletBatch = async (
   entropy?: Buffer
 ) => {
   // Parameter assignment
-  batchSize = batchSize ? batchSize : ENV.WALLET.DEFAULT.BATCH_SIZE;
+  batchSize = batchSize ? batchSize : ENV.KEYSTORE.default.batchSize;
   // add "/" if comes without it
   relativePath = relativePath[0] != "/" ? "/".concat(relativePath) : relativePath;
   // full path relative to project root. example: keystore/relativePath"
-  const path = ENV.PATH.KEYSTORE_ROOT.concat(relativePath);
+  const path = ENV.KEYSTORE.root.concat(relativePath);
   await checkDirectoriesInPath(path);
   // generate if not exists
   let wallets: Promise<Wallet>[] = [];
@@ -57,11 +57,11 @@ export const generateWallet = async (
   // add "/" if comes without it
   relativePath = relativePath[0] != "/" ? "/".concat(relativePath) : relativePath;
   // full path relative to project root. example: keystore/relativePath"
-  const path = ENV.PATH.KEYSTORE_ROOT.concat(relativePath);
+  const path = ENV.KEYSTORE.root.concat(relativePath);
   const checking = checkDirectoriesInPath(path);
   // get passwordfrom param or default
   if (!password) {
-    password = ENV.WALLET.DEFAULT.PASSWORD;
+    password = ENV.KEYSTORE.default.password;
     console.warn("WARN: No password specified, using default password");
   }
 

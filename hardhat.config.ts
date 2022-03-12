@@ -1,4 +1,4 @@
-import { ENV } from "./process.env";
+import { ENV } from "./configuration";
 import * as fs from "async-file";
 import { HardhatUserConfig, subtask, task, types } from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
@@ -64,7 +64,7 @@ task("get-wallet-info", "Recover all information from an encrypted wallet")
   .addOptionalPositionalParam("password", "Password to decrypt the wallet")
   .addFlag("showPrivate", "set to true if you want to show the private key and mnemonic phrase")
   .setAction(async ({ path, password, showPrivate }) => {
-    password = password ? password : ENV.WALLET.DEFAULT.PASSWORD;
+    password = password ? password : ENV.KEYSTORE.default.password;
     const wallet = Wallet.fromEncryptedJsonSync(await fs.readFile(path), password);
     let privateKey = wallet.privateKey;
     let mnemonic = wallet.mnemonic.phrase;
@@ -123,7 +123,7 @@ task("deploy", "Deploy smart contracts on '--network'")
     ) => {
       args = args ? args : [];
       const signer = Wallet.fromEncryptedJsonSync(
-        await fs.readFile(ENV.PATH.KEYSTORE_ROOT!.concat(relativePath)),
+        await fs.readFile(ENV.KEYSTORE.root.concat(relativePath)),
         password
       ).connect(hre.ethers.provider);
       setGHRE(hre);
@@ -164,7 +164,7 @@ task("upgrade", "Upgrade smart contracts on '--network'")
     ) => {
       args = args ? args : [];
       const signer = Wallet.fromEncryptedJsonSync(
-        await fs.readFile(ENV.PATH.KEYSTORE_ROOT.concat(relativePath)),
+        await fs.readFile(ENV.KEYSTORE.root.concat(relativePath)),
         password
       ).connect(hre.ethers.provider);
       setGHRE(hre);
@@ -182,7 +182,7 @@ task("quick-test", "Random quick testing function")
   .setAction(async ({ args }, hre: HardhatRuntimeEnvironment) => {
     // example: npx hardhat quick-test --args '[12, "hello"]'
     console.log("RAW Args: ", args, typeof args, args[0]);
-    console.log(ENV.WALLET.DEFAULT.PASSWORD);
+    console.log(ENV.KEYSTORE.default.password);
   });
 
 //! Config
@@ -190,28 +190,28 @@ task("quick-test", "Random quick testing function")
 // Go to https://hardhat.org/config/ to learn more
 const config: HardhatUserConfig = {
   solidity: {
-    version: ENV.NETWORK.DEFAULT.SOLIDITY!,
+    version: ENV.NETWORK.default.solVersion!,
     settings: {
       optimizer: {
         enabled: true,
         runs: 200,
       },
-      evmVersion: ENV.NETWORK.DEFAULT.EVM,
+      evmVersion: ENV.NETWORK.default.evm,
     },
   },
   networks: {
     hardhat: {
       chainId: 69,
-      blockGasLimit: ENV.NETWORK.DEFAULT.GAS_LIMIT,
-      gasPrice: ENV.NETWORK.DEFAULT.GAS_PRICE,
-      hardfork: ENV.NETWORK.DEFAULT.EVM,
+      blockGasLimit: ENV.NETWORK.default.gasLimit,
+      gasPrice: ENV.NETWORK.default.gasPrice,
+      hardfork: ENV.NETWORK.default.evm,
     },
     ganache: {
-      url: ENV.NETWORK.GANACHE.URL,
-      chainId: ENV.NETWORK.GANACHE.CHAINID,
-      blockGasLimit: ENV.NETWORK.DEFAULT.GAS_LIMIT,
-      gasPrice: ENV.NETWORK.DEFAULT.GAS_PRICE,
-      hardfork: ENV.NETWORK.DEFAULT.EVM,
+      url: ENV.NETWORK.ganache.url,
+      chainId: ENV.NETWORK.ganache.chainId,
+      blockGasLimit: ENV.NETWORK.default.gasLimit,
+      gasPrice: ENV.NETWORK.default.gasPrice,
+      hardfork: ENV.NETWORK.default.evm,
     },
   },
   contractSizer: {
