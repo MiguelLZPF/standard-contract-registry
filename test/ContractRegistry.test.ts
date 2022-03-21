@@ -37,7 +37,7 @@ import {
   versionHexStringToDot,
   versionDotToHexString,
 } from "../scripts/contractRegistry";
-import { Contract } from "ethers";
+import { Contract, ContractReceipt } from "ethers";
 
 // Generic Constants
 let PROVIDER: JsonRpcProvider;
@@ -87,6 +87,7 @@ let exampleStorage: ExampleStorage;
 // -- upgrade
 let proxyAdmin: ProxyAdmin;
 // -- utils
+let lastReceipt: ContractReceipt;
 let lastRegisteredAt: number, lastUpdatedAt: number;
 before("Initialize test environment and const/var", async () => {
   // set global HardhatRuntimeEnvironment to use the same provider in scripts
@@ -106,10 +107,7 @@ before("Initialize test environment and const/var", async () => {
       ENV.CONTRACT.exampleBallot.name,
       32
     );
-    EXAMPLE_OWNER_NAME_HEXSTRING = await stringToStringHexFixed(
-      ENV.CONTRACT.exampleOwner.name,
-      32
-    );
+    EXAMPLE_OWNER_NAME_HEXSTRING = await stringToStringHexFixed(ENV.CONTRACT.exampleOwner.name, 32);
     EXAMPLE_STORAGE_NAME_HEXSTRING = await stringToStringHexFixed(
       ENV.CONTRACT.exampleStorage.name,
       32
@@ -188,7 +186,7 @@ describe("Contract Registry - Deploy and Initialization", async function () {
   });
 
   step("Should initialize contract", async () => {
-    const receipt = await (
+    lastReceipt = await (
       await contractRegistry.initialize(
         ethers.constants.AddressZero,
         new Uint8Array(32),
@@ -197,12 +195,13 @@ describe("Contract Registry - Deploy and Initialization", async function () {
         GAS_OPT
       )
     ).wait();
-    expect(receipt).not.to.be.undefined;
+    expect(lastReceipt).not.to.be.undefined;
     // update block timestamp
-    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(receipt.blockHash);
+    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(lastReceipt.blockHash);
   });
 
   step("Should check if ContractRegistry is registered", async () => {
+    console.log(keccak256(contractRegistry.deployTransaction.data));
     await checkRecord(contractRegistry.address, contractRegistry.address, {
       found: true,
       proxy: contractRegistry.address,

@@ -201,7 +201,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      chainId: 69,
+      chainId: ENV.NETWORK.hardhat.chainId,
       blockGasLimit: ENV.NETWORK.default.gasLimit,
       gasPrice: ENV.NETWORK.default.gasPrice,
       hardfork: ENV.NETWORK.default.evm,
