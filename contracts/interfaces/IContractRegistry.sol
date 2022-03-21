@@ -57,11 +57,11 @@ interface IContractRegistry {
 
   /**
    * @notice Registers a contract deployed as a new ContractRecord
-   * @param proxy address of the proxy | storage contract. If NO upgradeable deployment proxy = logic
-   * @param logic address of the logic | implementation contract
-   * @param name name to identify this contract
-   * @param version initial version of the contract
-   * @param logicCodeHash the external bytecode or deployBytecode or off-chain bytecode
+   * @param proxy Address of the proxy | storage contract. If NO upgradeable deployment proxy = logic
+   * @param logic Address of the logic | implementation contract
+   * @param name Name to identify this contract
+   * @param version Initial version of the contract
+   * @param logicCodeHash The external bytecode or deployBytecode or off-chain bytecode
    */
   function register(
     address proxy,
