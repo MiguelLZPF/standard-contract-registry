@@ -17,13 +17,7 @@ import {
   IContractRegistry,
 } from "../typechain-types";
 import { keccak256 } from "@ethersproject/keccak256";
-import {
-  delay,
-  GAS_OPT,
-  getTimeStamp,
-  initHRE,
-  stringToStringHexFixed,
-} from "../scripts/utils";
+import { delay, GAS_OPT, getTimeStamp, initHRE, stringToStringHexFixed } from "../scripts/utils";
 import { INetwork } from "../models/Deploy";
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { ENV } from "../configuration";
@@ -95,10 +89,7 @@ before("Initialize test environment and const/var", async () => {
       ENV.CONTRACT.exampleBallot.name,
       32
     );
-    EXAMPLE_OWNER_NAME_HEXSTRING = await stringToStringHexFixed(
-      ENV.CONTRACT.exampleOwner.name,
-      32
-    );
+    EXAMPLE_OWNER_NAME_HEXSTRING = await stringToStringHexFixed(ENV.CONTRACT.exampleOwner.name, 32);
     EXAMPLE_STORAGE_NAME_HEXSTRING = await stringToStringHexFixed(
       ENV.CONTRACT.exampleStorage.name,
       32
@@ -126,12 +117,48 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
     console.log("Contract Registry deployed at: ", contractRegistry.address);
   });
 
+  step("Should initialize registry contract", async () => {
+    const receipt = await (
+      await contractRegistry.initialize(
+        ethers.constants.AddressZero,
+        new Uint8Array(32),
+        new Uint8Array(2),
+        keccak256(ContractRegistry__factory.bytecode),
+        GAS_OPT
+      )
+    ).wait();
+    expect(receipt).not.to.be.undefined;
+    // update block timestamp
+    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(receipt.blockHash);
+  });
+
+  step("Should check if ContractRegistry is registered", async () => {
+    await checkRecord(contractRegistry.address, contractRegistry.address, {
+      found: true,
+      proxy: contractRegistry.address,
+      logic: contractRegistry.address,
+      admin: admin.address,
+      name: CONTRACT_REGISTRY_NAME_HEXSTRING,
+      version: await versionDotToHexString("00.00"),
+      logicCodeHash: keccak256(ContractRegistry__factory.bytecode),
+      rat: lastRegisteredAt,
+      uat: lastUpdatedAt,
+    } as IExpectedRecord);
+  });
+
   step("Should deploy contract deployer", async () => {
     contractDeployer = await (
-      await new ContractDeployer__factory(admin).deploy(GAS_OPT)
+      await new ContractDeployer__factory(admin).deploy(
+        contractRegistry.address,
+        new Uint8Array(32),
+        keccak256(ContractDeployer__factory.bytecode),
+        GAS_OPT
+      )
     ).deployed();
     expect(isAddress(contractDeployer.address)).to.be.true;
     console.log("Contract Deployer deployed at: ", contractDeployer.address);
+    // update block timestamp
+    lastRegisteredAt = lastUpdatedAt = await getTimeStamp((await PROVIDER.getBlock("latest")).hash);
   });
 
   it("Should subscribe contract EVENTS", async () => {
@@ -214,75 +241,10 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
         );
       }
     );
-    // Catched Errors
-    /* const errorMap = new Map<number, string>([
-      [0, "Error"],
-      [1, "Panic"],
-      [2, "Other"],
-    ]);
-    contractDeployer.on(
-      contractDeployer.filters.CatchedError(),
-      async (method, type, message, lowLevelData, errorCode, event) => {
-        const decodedData = defaultAbiCoder.decode(["string"], lowLevelData);
-        const blockTime = (await event.getBlock()).timestamp;
-        console.log(
-          `Cathced Error: { SC Method: ${method}, Type error: ${errorMap.get(
-            type
-          )}, Message: ${message}, LowLevelData: ${decodedData}, ErrorCode: ${errorCode}} at Block ${
-            event.blockNumber
-          } (${event.blockHash}) timestamp: ${new Date(
-            blockTime * 1000
-          ).toISOString()} (${blockTime})`
-        );
-      }
-    ); */
   });
 
-  step("Should initialize registry contract", async () => {
-    const receipt = await (
-      await contractRegistry.initialize(
-        ethers.constants.AddressZero,
-        new Uint8Array(32),
-        new Uint8Array(2),
-        keccak256(ContractRegistry__factory.bytecode),
-        GAS_OPT
-      )
-    ).wait();
-    expect(receipt).not.to.be.undefined;
-    // update block timestamp
-    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(receipt.blockHash);
-  });
   // No need to initialize Contract Deployer, it is not upgradeable
 
-  step("Should check if ContractRegistry is registered", async () => {
-    await checkRecord(contractRegistry.address, contractRegistry.address, {
-      found: true,
-      proxy: contractRegistry.address,
-      logic: contractRegistry.address,
-      admin: admin.address,
-      name: CONTRACT_REGISTRY_NAME_HEXSTRING,
-      version: await versionDotToHexString("00.00"),
-      logicCodeHash: keccak256(ContractRegistry__factory.bytecode),
-      rat: lastRegisteredAt,
-      uat: lastUpdatedAt,
-    } as IExpectedRecord);
-  });
-
-  step("Should register Contract Deployer in registry contract", async () => {
-    const receipt = await (
-      await contractRegistry.register(
-        ethers.constants.AddressZero,
-        contractDeployer.address,
-        CONTRACT_DEPLOYER_NAME_HEXSTRING,
-        VERSION_HEX_STRING_ZERO,
-        keccak256(ContractDeployer__factory.bytecode),
-        GAS_OPT
-      )
-    ).wait();
-    expect(receipt).not.to.be.undefined;
-    // update block timestamp
-    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(receipt.blockHash);
-  });
   step("Should check if Contract Deployer is registered", async () => {
     // use contract object to use user0.address in call
     await checkRecord(contractRegistry as unknown as IContractRegistry, contractDeployer.address, {
@@ -323,8 +285,7 @@ describe("Contract Deployer - Use case", async () => {
         new Uint8Array(0),
         new Uint8Array(32),
         EXAMPLE_OWNER_NAME_HEXSTRING,
-        VERSION_HEX_STRING_ZERO,
-        GAS_OPT
+        VERSION_HEX_STRING_ZERO
       )
     ).to.be.revertedWith(REVERT_MESSAGES.erc1967.paramBytecode);
   });

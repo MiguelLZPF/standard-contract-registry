@@ -11,7 +11,7 @@ const KEYSTORE = {
 
 const NETWORK = {
   default: {
-    solVersion: "0.8.13",
+    solVersion: "0.8.14",
     evm: "berlin",
     gasLimit: 80000000,
     gasPrice: 0,

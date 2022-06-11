@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { Contract } from "ethers";
 import { isAddress } from "ethers/lib/utils";
 import { ContractRegistry__factory, IContractRegistry } from "../typechain-types";
-import { ContractRecordStructOutput } from "../typechain-types/ContractRegistry";
+import { ContractRecordStructOutput } from "../typechain-types/contracts/ContractRegistry";
 import { ADDR_ZERO, ghre } from "./utils";
 
 export interface IExpectedRecord {

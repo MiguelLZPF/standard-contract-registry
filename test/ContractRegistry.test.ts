@@ -221,8 +221,7 @@ describe("Contract Registry - Deploy and Initialization", async function () {
         ethers.constants.AddressZero,
         new Uint8Array(32),
         new Uint8Array(2),
-        keccak256(ContractRegistry__factory.bytecode),
-        GAS_OPT
+        keccak256(ContractRegistry__factory.bytecode)
       )
     ).to.be.revertedWith(REVERT_MESSAGES.initializable.initialized);
   });
@@ -269,8 +268,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
         ethers.constants.AddressZero, //! <--
         CONTRACT_REGISTRY_NAME_HEXSTRING,
         VERSION_HEX_STRING_ZERO,
-        keccak256(randomBytes(10)),
-        GAS_OPT
+        keccak256(randomBytes(10))
       )
     ).to.be.revertedWith(REVERT_MESSAGES.register.paramLogic);
   });
@@ -281,8 +279,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
         exampleStorage.address,
         await stringToStringHexFixed("", 32), //! <--
         VERSION_HEX_STRING_ZERO,
-        keccak256(randomBytes(10)),
-        GAS_OPT
+        keccak256(randomBytes(10))
       )
     ).to.be.revertedWith(REVERT_MESSAGES.register.paramName);
   });
@@ -293,8 +290,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
         contractRegistry.address, //! <--
         ANOTHER_NAME_HEXSTRING, // another name is needed to trigger this revert
         VERSION_HEX_STRING_ZERO,
-        keccak256(randomBytes(10)),
-        GAS_OPT
+        keccak256(randomBytes(10))
       )
     ).to.be.revertedWith(REVERT_MESSAGES.register.alreadyRegistered);
   });
@@ -335,8 +331,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
         exampleStorage.address,
         EXAMPLE_STORAGE_NAME_HEXSTRING, //! <--
         VERSION_HEX_STRING_ZERO,
-        keccak256(randomBytes(10)),
-        GAS_OPT
+        keccak256(randomBytes(10))
       )
     ).to.be.revertedWith(REVERT_MESSAGES.register.paramName);
   });
@@ -348,8 +343,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
         exampleStorage.address, // Not used
         EXAMPLE_STORAGE_NAME_HEXSTRING, // Not used
         await versionDotToHexString("00.00"), // Not used
-        keccak256(CONTRACT_REGISTRY_NAME_HEXSTRING), // Not used
-        GAS_OPT
+        keccak256(CONTRACT_REGISTRY_NAME_HEXSTRING) // Not used
       )
     ).to.be.revertedWith(REVERT_MESSAGES.update.notUpgradeable);
   });
@@ -358,8 +352,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
     await expect(
       contractRegistry.changeRegisteredAdmin(
         exampleStorage.address, // Not used
-        ADDR_ZERO, //! <--
-        GAS_OPT
+        ADDR_ZERO //! <--
       )
     ).to.be.revertedWith(REVERT_MESSAGES.changeAdmin.paramAdmin);
   });
@@ -367,8 +360,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
     await expect(
       contractRegistry.changeRegisteredAdmin(
         exampleStorage.address,
-        users[0].address, //! <--
-        GAS_OPT
+        users[0].address //! <--
       )
     ).to.be.revertedWith(REVERT_MESSAGES.changeAdmin.sameAdmin);
   });
@@ -376,8 +368,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
     await expect(
       contractRegistry.changeRegisteredAdmin(
         users[0].address, //! <--
-        users[1].address, // Not used
-        GAS_OPT
+        users[1].address // Not used
       )
     ).to.be.revertedWith(REVERT_MESSAGES.changeAdmin.notRegistered);
   });
@@ -507,8 +498,7 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
         ADDR_ZERO,
         NAME_HEXSTRING_ZERO,
         await versionDotToHexString("01.00"),
-        keccak256(ExampleStorage__factory.bytecode), // Not used
-        GAS_OPT
+        keccak256(ExampleStorage__factory.bytecode) // Not used
       )
     ).to.be.revertedWith(REVERT_MESSAGES.update.notRegistered);
   });
@@ -519,25 +509,23 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
         await proxyAdmin.getProxyImplementation(exampleStorage.address), //! <--
         NAME_HEXSTRING_ZERO, // Not used
         await versionDotToHexString("01.00"), // Not used
-        keccak256(ExampleStorage__factory.bytecode), // Not used
-        GAS_OPT
+        keccak256(ExampleStorage__factory.bytecode) // Not used
       )
     ).to.be.revertedWith(REVERT_MESSAGES.update.paramLogic);
   });
   it("Should FAIL to update with same logic code hash", async () => {
     // deploy a new logic/implementation contract
     const factory = await ethers.getContractFactory(ENV.CONTRACT.exampleStorage.name, users[2]);
-    const logic = await (await factory.deploy(GAS_OPT)).deployed();
+    const logic = await (await factory.deploy()).deployed();
     // change logic reference in proxyAdmin
-    await proxyAdmin.upgrade(exampleStorage.address, logic.address, GAS_OPT);
+    await proxyAdmin.upgrade(exampleStorage.address, logic.address);
     await expect(
       contractRegistry.update(
         exampleStorage.address,
         await proxyAdmin.getProxyImplementation(exampleStorage.address),
         NAME_HEXSTRING_ZERO, // Not used
         await versionDotToHexString("01.00"), // Not used
-        keccak256(ExampleStorage__factory.bytecode), //! <--
-        GAS_OPT
+        keccak256(ExampleStorage__factory.bytecode) //! <--
       )
     ).to.be.revertedWith(REVERT_MESSAGES.update.paramLogicCodeHash);
   });
@@ -548,8 +536,7 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
         await proxyAdmin.getProxyImplementation(exampleStorage.address),
         NAME_HEXSTRING_ZERO, // Not used
         await versionDotToHexString("00.00"),
-        keccak256(ExampleStorage__factory.bytecode + "012345"), // Not used
-        GAS_OPT
+        keccak256(ExampleStorage__factory.bytecode + "012345") // Not used
       )
     ).to.be.revertedWith(REVERT_MESSAGES.update.versionLower);
   });
@@ -561,8 +548,7 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
         await proxyAdmin.getProxyImplementation(exampleStorage.address),
         NAME_HEXSTRING_ZERO,
         await versionDotToHexString("01.00"),
-        keccak256(ExampleStorage__factory.bytecode + "012345"),
-        GAS_OPT
+        keccak256(ExampleStorage__factory.bytecode + "012345")
       )
     ).to.be.revertedWith(REVERT_MESSAGES.update.notAdmin);
   });

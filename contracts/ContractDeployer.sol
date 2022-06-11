@@ -2,11 +2,33 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import { Create2Upgradeable as Create2 } from "@openzeppelin/contracts-upgradeable/utils/Create2Upgradeable.sol";
-import { IContractRegistry } from "./interfaces/IContractRegistry.sol";
-import { IContractDeployer } from "./interfaces/IContractDeployer.sol";
+import "@openzeppelin/contracts/utils/Create2.sol";
+import { IContractDeployer, IContractRegistry } from "./interfaces/IContractDeployer.sol";
 
 contract ContractDeployer is IContractDeployer, ProxyAdmin {
+  IContractRegistry private defaultRegistry;
+
+  /**
+   * @notice Initializes the contract and adds intself as first record
+   * @dev The logic address in not needed because is the address(this)
+   * @param initRegistry default ContractRegistry contract
+   * @param name (optional) [ContractRegistry] name to identify this contract
+   * @param logicCodeHash the external bytecode or deployBytecode or off-chain bytecode
+   */
+  constructor(
+    IContractRegistry initRegistry,
+    bytes32 name,
+    bytes32 logicCodeHash
+  ) {
+    defaultRegistry = initRegistry;
+    if (name == bytes32(0)) {
+      name = bytes32("ContractDeployer");
+    }
+    defaultRegistry.register(address(this), address(this), name, bytes2(0), logicCodeHash);
+    // return control of the proxy
+    defaultRegistry.changeRegisteredAdmin(address(this), _msgSender());
+  }
+
   function deployContract(
     IContractRegistry registry,
     bytes memory bytecode,
@@ -15,6 +37,10 @@ contract ContractDeployer is IContractDeployer, ProxyAdmin {
     bytes32 name,
     bytes2 version
   ) external {
+    // set default if empty
+    if (address(registry) == address(0)) {
+      registry = defaultRegistry;
+    }
     address registryAddr = address(registry);
     // calculate sha3 hash of the bytecode
     bytes32 logicCodeHash = keccak256(bytecode);
@@ -46,6 +72,10 @@ contract ContractDeployer is IContractDeployer, ProxyAdmin {
     bytes32 salt,
     bytes2 version
   ) external {
+    // set default if empty
+    if (address(registry) == address(0)) {
+      registry = defaultRegistry;
+    }
     address registryAddr = address(registry);
     address proxyAddr = address(proxy);
     // calculate sha3 hash of the bytecode
