@@ -1,6 +1,6 @@
 import { Provider } from "@ethersproject/abstract-provider";
 import { expect } from "chai";
-import { Contract } from "ethers";
+import { BigNumberish, Contract } from "ethers";
 import { isAddress } from "ethers/lib/utils";
 import { ContractRegistry__factory, IContractRegistry } from "../typechain-types";
 import { ContractRecordStructOutput } from "../typechain-types/contracts/ContractRegistry";
@@ -12,7 +12,7 @@ export interface IExpectedRecord {
   logic?: string;
   admin?: string;
   name?: string; // must be unique OPT DEF: 0x00...00
-  version?: string;
+  version?: BigNumberish;
   logicCodeHash?: string; // OPT def: 0x00...00
   rat?: number; // Registered AT
   uat?: number; // Updated AT
@@ -63,7 +63,7 @@ export const checkRecord = async (
   expected.admin ? expect(result.record.admin).to.equal(expected.admin) : undefined;
   expect(result.record.name.length).to.equal(32 * 2 + 2);
   expected.name ? expect(result.record.name).to.equal(expected.name) : undefined;
-  expect(result.record.version.length).to.equal(2 * 2 + 2);
+  expect(result.record.version).to.be.lessThanOrEqual(9999);
   expected.version ? expect(result.record.version).to.equal(expected.version) : undefined;
   expect(result.record.logicCodeHash.length).to.equal(32 * 2 + 2);
   expected.logicCodeHash
@@ -73,10 +73,13 @@ export const checkRecord = async (
   expected.uat ? expect(result.record.uat).to.equal(expected.uat) : undefined;
 };
 
-export const versionHexStringToDot = async (versionHexString: string) => {
-  return `${versionHexString.substring(2, 4)}.${versionHexString.substring(4, 6)}`;
+export const versionNumToDot = async (versionNum: number) => {
+  const versionString = versionNum.toString();
+  const zeroPad = "000";
+  const finalVersion = zeroPad.substring(0, 4 - versionString.length) + versionString;
+  return `${finalVersion.substring(0, 2)}.${finalVersion.substring(2, 4)}`;
 };
 
-export const versionDotToHexString = async (versionDot: string) => {
-  return `0x${versionDot.substring(0, 2)}${versionDot.substring(3, 5)}`;
+export const versionDotToNum = async (versionDot: string) => {
+  return +(versionDot.substring(0, 2) + versionDot.substring(3, 5));
 };

@@ -34,10 +34,10 @@ import { ENV } from "../configuration";
 import {
   IExpectedRecord,
   checkRecord,
-  versionHexStringToDot,
-  versionDotToHexString,
+  versionDotToNum,
+  versionNumToDot,
 } from "../scripts/contractRegistry";
-import { Contract, ContractReceipt } from "ethers";
+import { constants, Contract, ContractReceipt } from "ethers";
 
 // Generic Constants
 let PROVIDER: JsonRpcProvider;
@@ -73,7 +73,6 @@ let EXAMPLE_OWNER_NAME_HEXSTRING: string;
 let EXAMPLE_STORAGE_NAME_HEXSTRING: string;
 let ANOTHER_NAME_HEXSTRING: string;
 const NAME_HEXSTRING_ZERO = new Uint8Array(32);
-const VERSION_HEX_STRING_ZERO = new Uint8Array(2);
 
 // Specific Variables
 // -- Wallets
@@ -129,10 +128,18 @@ describe("Contract Registry - Deploy and Initialization", async function () {
 
   step("Should deploy contract registry", async () => {
     contractRegistry = await (
-      await new ContractRegistry__factory(admin).deploy(GAS_OPT)
+      await new ContractRegistry__factory(admin).deploy(
+        new Uint8Array(32),
+        new Uint8Array(2),
+        keccak256(ContractRegistry__factory.bytecode),
+        GAS_OPT
+      )
     ).deployed();
+    lastReceipt = await contractRegistry.deployTransaction.wait();
     expect(isAddress(contractRegistry.address)).to.be.true;
     console.log("Contract Registry deployed at: ", contractRegistry.address);
+    expect(lastReceipt).not.to.be.undefined;
+    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(lastReceipt.blockHash);
   });
 
   it("Should subscribe contract EVENTS", async () => {
@@ -141,7 +148,7 @@ describe("Contract Registry - Deploy and Initialization", async function () {
       contractRegistry.filters.Registered(),
       async (proxy, name, version, logicCodeHash, event) => {
         const nameString = Buffer.from(name.substring(2), "hex").toString("utf-8");
-        const versionStr = await versionHexStringToDot(version);
+        const versionStr = await versionNumToDot(version);
         const blockTime = (await event.getBlock()).timestamp;
         console.log(
           `New Contract Registered: { Proxy: ${proxy}, Name: ${nameString}, Version: ${versionStr}, Logic code hash: ${logicCodeHash}} at Block ${
@@ -157,7 +164,7 @@ describe("Contract Registry - Deploy and Initialization", async function () {
       contractRegistry.filters.Updated(),
       async (proxy, name, version, logicCodeHash, event) => {
         const nameString = Buffer.from(name.substring(2), "hex").toString("utf-8");
-        const versionStr = await versionHexStringToDot(version);
+        const versionStr = await versionNumToDot(version);
         const blockTime = (await event.getBlock()).timestamp;
         console.log(
           `New Contract Updated: { Proxy: ${proxy}, Name: ${nameString}, Version: ${versionStr}, Logic code hash: ${logicCodeHash}} at Block ${
@@ -185,45 +192,18 @@ describe("Contract Registry - Deploy and Initialization", async function () {
     );
   });
 
-  step("Should initialize contract", async () => {
-    lastReceipt = await (
-      await contractRegistry.initialize(
-        ethers.constants.AddressZero,
-        new Uint8Array(32),
-        new Uint8Array(2),
-        keccak256(ContractRegistry__factory.bytecode),
-        GAS_OPT
-      )
-    ).wait();
-    expect(lastReceipt).not.to.be.undefined;
-    // update block timestamp
-    lastRegisteredAt = lastUpdatedAt = await getTimeStamp(lastReceipt.blockHash);
-  });
-
   step("Should check if ContractRegistry is registered", async () => {
-    console.log(keccak256(contractRegistry.deployTransaction.data));
     await checkRecord(contractRegistry.address, contractRegistry.address, {
       found: true,
       proxy: contractRegistry.address,
       logic: contractRegistry.address,
       admin: admin.address,
       name: CONTRACT_REGISTRY_NAME_HEXSTRING,
-      version: await versionDotToHexString("00.00"),
+      version: await versionDotToNum("00.00"),
       logicCodeHash: keccak256(ContractRegistry__factory.bytecode),
       rat: lastRegisteredAt,
       uat: lastUpdatedAt,
     } as IExpectedRecord);
-  });
-
-  it("Should FAIL initializing same contract again", async () => {
-    await expect(
-      contractRegistry.initialize(
-        ethers.constants.AddressZero,
-        new Uint8Array(32),
-        new Uint8Array(2),
-        keccak256(ContractRegistry__factory.bytecode)
-      )
-    ).to.be.revertedWith(REVERT_MESSAGES.initializable.initialized);
   });
 
   after("Wait for events", async () => {
@@ -267,7 +247,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
         ethers.constants.AddressZero,
         ethers.constants.AddressZero, //! <--
         CONTRACT_REGISTRY_NAME_HEXSTRING,
-        VERSION_HEX_STRING_ZERO,
+        0,
         keccak256(randomBytes(10))
       )
     ).to.be.revertedWith(REVERT_MESSAGES.register.paramLogic);
@@ -278,7 +258,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
         ethers.constants.AddressZero,
         exampleStorage.address,
         await stringToStringHexFixed("", 32), //! <--
-        VERSION_HEX_STRING_ZERO,
+        0,
         keccak256(randomBytes(10))
       )
     ).to.be.revertedWith(REVERT_MESSAGES.register.paramName);
@@ -289,7 +269,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
         ethers.constants.AddressZero,
         contractRegistry.address, //! <--
         ANOTHER_NAME_HEXSTRING, // another name is needed to trigger this revert
-        VERSION_HEX_STRING_ZERO,
+        0,
         keccak256(randomBytes(10))
       )
     ).to.be.revertedWith(REVERT_MESSAGES.register.alreadyRegistered);
@@ -300,7 +280,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
         ethers.constants.AddressZero,
         exampleStorage.address,
         EXAMPLE_STORAGE_NAME_HEXSTRING,
-        VERSION_HEX_STRING_ZERO,
+        0,
         keccak256(ExampleStorage__factory.bytecode),
         GAS_OPT
       )
@@ -318,7 +298,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
       logic: exampleStorage.address,
       admin: users[0].address,
       name: EXAMPLE_STORAGE_NAME_HEXSTRING,
-      version: await versionDotToHexString("00.00"),
+      version: await versionDotToNum("00.00"),
       logicCodeHash: keccak256(ExampleStorage__factory.bytecode),
       rat: lastRegisteredAt,
       uat: lastUpdatedAt,
@@ -330,7 +310,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
         ethers.constants.AddressZero,
         exampleStorage.address,
         EXAMPLE_STORAGE_NAME_HEXSTRING, //! <--
-        VERSION_HEX_STRING_ZERO,
+        0,
         keccak256(randomBytes(10))
       )
     ).to.be.revertedWith(REVERT_MESSAGES.register.paramName);
@@ -342,7 +322,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
         exampleStorage.address, // Not used
         exampleStorage.address, // Not used
         EXAMPLE_STORAGE_NAME_HEXSTRING, // Not used
-        await versionDotToHexString("00.00"), // Not used
+        await versionDotToNum("00.00"), // Not used
         keccak256(CONTRACT_REGISTRY_NAME_HEXSTRING) // Not used
       )
     ).to.be.revertedWith(REVERT_MESSAGES.update.notUpgradeable);
@@ -389,7 +369,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
         ethers.constants.AddressZero,
         exampleBallot.address,
         EXAMPLE_BALLOT_NAME_HEXSTRING,
-        VERSION_HEX_STRING_ZERO,
+        0,
         keccak256(ExampleBallot__factory.bytecode),
         GAS_OPT
       )
@@ -404,7 +384,7 @@ describe("Contract Registry - Regular deployment use case", async () => {
         ethers.constants.AddressZero,
         exampleOwner.address,
         EXAMPLE_OWNER_NAME_HEXSTRING,
-        VERSION_HEX_STRING_ZERO,
+        0,
         keccak256(ExampleOwner__factory.bytecode),
         GAS_OPT
       )
@@ -466,7 +446,7 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
         exampleStorage.address,
         await proxyAdmin.getProxyImplementation(exampleStorage.address),
         EXAMPLE_STORAGE_NAME_HEXSTRING,
-        VERSION_HEX_STRING_ZERO,
+        0,
         keccak256(ExampleStorage__factory.bytecode),
         GAS_OPT
       )
@@ -484,7 +464,7 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
       logic: await proxyAdmin.getProxyImplementation(exampleStorage.address),
       admin: users[2].address,
       name: EXAMPLE_STORAGE_NAME_HEXSTRING,
-      version: await versionDotToHexString("00.00"),
+      version: await versionDotToNum("00.00"),
       logicCodeHash: keccak256(ExampleStorage__factory.bytecode),
       rat: lastRegisteredAt,
       uat: lastUpdatedAt,
@@ -497,7 +477,7 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
         await proxyAdmin.getProxyImplementation(exampleStorage.address), //! <--
         ADDR_ZERO,
         NAME_HEXSTRING_ZERO,
-        await versionDotToHexString("01.00"),
+        await versionDotToNum("01.00"),
         keccak256(ExampleStorage__factory.bytecode) // Not used
       )
     ).to.be.revertedWith(REVERT_MESSAGES.update.notRegistered);
@@ -508,7 +488,7 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
         exampleStorage.address,
         await proxyAdmin.getProxyImplementation(exampleStorage.address), //! <--
         NAME_HEXSTRING_ZERO, // Not used
-        await versionDotToHexString("01.00"), // Not used
+        await versionDotToNum("01.00"), // Not used
         keccak256(ExampleStorage__factory.bytecode) // Not used
       )
     ).to.be.revertedWith(REVERT_MESSAGES.update.paramLogic);
@@ -524,8 +504,9 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
         exampleStorage.address,
         await proxyAdmin.getProxyImplementation(exampleStorage.address),
         NAME_HEXSTRING_ZERO, // Not used
-        await versionDotToHexString("01.00"), // Not used
-        keccak256(ExampleStorage__factory.bytecode) //! <--
+        await versionDotToNum("01.00"), // Not used
+        keccak256(ExampleStorage__factory.bytecode), //! <--
+        GAS_OPT
       )
     ).to.be.revertedWith(REVERT_MESSAGES.update.paramLogicCodeHash);
   });
@@ -535,7 +516,7 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
         exampleStorage.address,
         await proxyAdmin.getProxyImplementation(exampleStorage.address),
         NAME_HEXSTRING_ZERO, // Not used
-        await versionDotToHexString("00.00"),
+        await versionDotToNum("00.00"),
         keccak256(ExampleStorage__factory.bytecode + "012345") // Not used
       )
     ).to.be.revertedWith(REVERT_MESSAGES.update.versionLower);
@@ -547,18 +528,21 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
         exampleStorage.address,
         await proxyAdmin.getProxyImplementation(exampleStorage.address),
         NAME_HEXSTRING_ZERO,
-        await versionDotToHexString("01.00"),
+        await versionDotToNum("01.00"),
         keccak256(ExampleStorage__factory.bytecode + "012345")
       )
     ).to.be.revertedWith(REVERT_MESSAGES.update.notAdmin);
   });
   step("Should update Example Storage upgradeable contract", async () => {
+    const factory = await ethers.getContractFactory(ENV.CONTRACT.exampleStorage.name, users[2]);
+    const logic = await (await factory.deploy(GAS_OPT)).deployed();
+    await proxyAdmin.upgrade(exampleStorage.address, logic.address, GAS_OPT);
     const receipt = await (
       await contractRegistry.update(
         exampleStorage.address,
-        await proxyAdmin.getProxyImplementation(exampleStorage.address),
+        logic.address,
         NAME_HEXSTRING_ZERO,
-        await versionDotToHexString("01.00"),
+        await versionDotToNum("01.00"),
         keccak256(ExampleStorage__factory.bytecode + "012345"),
         GAS_OPT
       )
@@ -576,7 +560,7 @@ describe("Contract Registry - Upgradeable deployment use case", async () => {
       logic: await proxyAdmin.getProxyImplementation(exampleStorage.address),
       admin: users[2].address,
       name: EXAMPLE_STORAGE_NAME_HEXSTRING,
-      version: await versionDotToHexString("01.00"),
+      version: await versionDotToNum("01.00"),
       logicCodeHash: keccak256(ExampleStorage__factory.bytecode + "012345"),
       rat: lastRegisteredAt,
       uat: lastUpdatedAt,

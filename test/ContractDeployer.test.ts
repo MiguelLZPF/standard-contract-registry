@@ -3,17 +3,14 @@ import { isAddress } from "@ethersproject/address";
 import { Wallet } from "@ethersproject/wallet";
 import { expect } from "chai";
 import { step } from "mocha-steps";
-import { ethers } from "hardhat";
 import {
   ContractDeployer,
   ContractDeployer__factory,
   ContractRegistry,
   ContractRegistry__factory,
-  ExampleBallot,
   ExampleOwner,
   ExampleOwnerV2__factory,
   ExampleOwner__factory,
-  ExampleStorage,
   IContractRegistry,
 } from "../typechain-types";
 import { keccak256 } from "@ethersproject/keccak256";
@@ -24,8 +21,8 @@ import { ENV } from "../configuration";
 import {
   IExpectedRecord,
   checkRecord,
-  versionHexStringToDot,
-  versionDotToHexString,
+  versionDotToNum,
+  versionNumToDot,
 } from "../scripts/contractRegistry";
 import { Contract } from "ethers";
 
@@ -42,12 +39,7 @@ const REVERT_MESSAGES = {
 
 let CONTRACT_REGISTRY_NAME_HEXSTRING: string;
 let CONTRACT_DEPLOYER_NAME_HEXSTRING: string;
-let EXAMPLE_BALLOT_NAME_HEXSTRING: string;
 let EXAMPLE_OWNER_NAME_HEXSTRING: string;
-let EXAMPLE_STORAGE_NAME_HEXSTRING: string;
-let ANOTHER_NAME_HEXSTRING: string;
-const NAME_HEXSTRING_ZERO = new Uint8Array(32);
-const VERSION_HEX_STRING_ZERO = new Uint8Array(2);
 
 // Specific Variables
 // -- Wallets
@@ -55,10 +47,9 @@ let admin: Wallet;
 let users: Wallet[] = [];
 // -- Contracts
 let contractRegistry: ContractRegistry;
-let contractDeployer: ContractDeployer;
-let exampleBallot: ExampleBallot;
+let contractDeployerAdmin: ContractDeployer;
+let contractDeployerUser0: ContractDeployer;
 let exampleOwner: ExampleOwner;
-let exampleStorage: ExampleStorage;
 // -- utils
 let lastRegisteredAt: number, lastUpdatedAt: number;
 before("Initialize test environment and const/var", async () => {
@@ -85,19 +76,7 @@ before("Initialize test environment and const/var", async () => {
       ENV.CONTRACT.contractDeployer.name,
       32
     );
-    EXAMPLE_BALLOT_NAME_HEXSTRING = await stringToStringHexFixed(
-      ENV.CONTRACT.exampleBallot.name,
-      32
-    );
     EXAMPLE_OWNER_NAME_HEXSTRING = await stringToStringHexFixed(ENV.CONTRACT.exampleOwner.name, 32);
-    EXAMPLE_STORAGE_NAME_HEXSTRING = await stringToStringHexFixed(
-      ENV.CONTRACT.exampleStorage.name,
-      32
-    );
-    ANOTHER_NAME_HEXSTRING = await stringToStringHexFixed(
-      ENV.CONTRACT.exampleBallot.name + "_BAD!!!!",
-      32
-    );
   } catch (error) {
     throw new Error(`Error creating or reading wallets from keystore. ${error}`);
   }
@@ -111,24 +90,17 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
 
   step("Should deploy contract registry", async () => {
     contractRegistry = await (
-      await new ContractRegistry__factory(admin).deploy(GAS_OPT)
-    ).deployed();
-    expect(isAddress(contractRegistry.address)).to.be.true;
-    console.log("Contract Registry deployed at: ", contractRegistry.address);
-  });
-
-  step("Should initialize registry contract", async () => {
-    const receipt = await (
-      await contractRegistry.initialize(
-        ethers.constants.AddressZero,
-        new Uint8Array(32),
-        new Uint8Array(2),
+      await new ContractRegistry__factory(admin).deploy(
+        CONTRACT_REGISTRY_NAME_HEXSTRING,
+        0,
         keccak256(ContractRegistry__factory.bytecode),
         GAS_OPT
       )
-    ).wait();
-    expect(receipt).not.to.be.undefined;
+    ).deployed();
+    expect(isAddress(contractRegistry.address)).to.be.true;
+    console.log("Contract Registry deployed at: ", contractRegistry.address);
     // update block timestamp
+    const receipt = await contractRegistry.deployTransaction.wait();
     lastRegisteredAt = lastUpdatedAt = await getTimeStamp(receipt.blockHash);
   });
 
@@ -139,15 +111,15 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
       logic: contractRegistry.address,
       admin: admin.address,
       name: CONTRACT_REGISTRY_NAME_HEXSTRING,
-      version: await versionDotToHexString("00.00"),
+      version: await versionDotToNum("00.00"),
       logicCodeHash: keccak256(ContractRegistry__factory.bytecode),
       rat: lastRegisteredAt,
       uat: lastUpdatedAt,
     } as IExpectedRecord);
   });
 
-  step("Should deploy contract deployer", async () => {
-    contractDeployer = await (
+  step("Should deploy admin's contract deployer", async () => {
+    contractDeployerAdmin = await (
       await new ContractDeployer__factory(admin).deploy(
         contractRegistry.address,
         new Uint8Array(32),
@@ -155,10 +127,24 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
         GAS_OPT
       )
     ).deployed();
-    expect(isAddress(contractDeployer.address)).to.be.true;
-    console.log("Contract Deployer deployed at: ", contractDeployer.address);
+    expect(isAddress(contractDeployerAdmin.address)).to.be.true;
+    console.log("Contract Deployer deployed at: ", contractDeployerAdmin.address);
     // update block timestamp
     lastRegisteredAt = lastUpdatedAt = await getTimeStamp((await PROVIDER.getBlock("latest")).hash);
+  });
+
+  step("Should check if Admin's ContractDeployer is registered", async () => {
+    await checkRecord(contractRegistry.address, contractDeployerAdmin.address, {
+      found: true,
+      proxy: contractDeployerAdmin.address,
+      logic: contractDeployerAdmin.address,
+      admin: admin.address,
+      name: CONTRACT_DEPLOYER_NAME_HEXSTRING,
+      version: await versionDotToNum("00.00"),
+      logicCodeHash: keccak256(ContractDeployer__factory.bytecode),
+      rat: lastRegisteredAt,
+      uat: lastUpdatedAt,
+    } as IExpectedRecord);
   });
 
   it("Should subscribe contract EVENTS", async () => {
@@ -167,7 +153,7 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
       contractRegistry.filters.Registered(),
       async (proxy, name, version, logicCodeHash, event) => {
         const nameString = Buffer.from(name.substring(2), "hex").toString("utf-8");
-        const versionStr = await versionHexStringToDot(version);
+        const versionStr = await versionNumToDot(version);
         const blockTime = (await event.getBlock()).timestamp;
         console.log(
           `New Contract Registered: { Proxy: ${proxy}, Name: ${nameString}, Version: ${versionStr}, Logic code hash: ${logicCodeHash}} at Block ${
@@ -183,7 +169,7 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
       contractRegistry.filters.Updated(),
       async (proxy, name, version, logicCodeHash, event) => {
         const nameString = Buffer.from(name.substring(2), "hex").toString("utf-8");
-        const versionStr = await versionHexStringToDot(version);
+        const versionStr = await versionNumToDot(version);
         const blockTime = (await event.getBlock()).timestamp;
         console.log(
           `New Contract Updated: { Proxy: ${proxy}, Name: ${nameString}, Version: ${versionStr}, Logic code hash: ${logicCodeHash}} at Block ${
@@ -215,7 +201,7 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
       contractDeployer.filters.ContractDeployed(),
       async (registry, proxy, name, version, logicCodeHash, event) => {
         const nameString = Buffer.from(name.substring(2), "hex").toString("utf-8");
-        const versionStr = await versionHexStringToDot(version);
+        const versionStr = await versionNumToDot(version);
         const blockTime = (await event.getBlock()).timestamp;
         console.log(
           `New Contract Deployed: { Registry: ${registry}, Proxy: ${proxy}, Name: ${nameString}, Version: ${versionStr}, Logic code hash: ${logicCodeHash}} at Block ${
@@ -230,7 +216,7 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
     contractDeployer.on(
       contractDeployer.filters.ContractUpgraded(),
       async (registry, proxy, version, logicCodeHash, event) => {
-        const versionStr = await versionHexStringToDot(version);
+        const versionStr = await versionNumToDot(version);
         const blockTime = (await event.getBlock()).timestamp;
         console.log(
           `New Contract Upgraded: { Registry: ${registry}, Proxy: ${proxy}, Version: ${versionStr}, Logic code hash: ${logicCodeHash}} at Block ${
@@ -245,21 +231,6 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
 
   // No need to initialize Contract Deployer, it is not upgradeable
 
-  step("Should check if Contract Deployer is registered", async () => {
-    // use contract object to use user0.address in call
-    await checkRecord(contractRegistry as unknown as IContractRegistry, contractDeployer.address, {
-      found: true,
-      proxy: contractDeployer.address,
-      logic: contractDeployer.address,
-      admin: admin.address,
-      name: CONTRACT_DEPLOYER_NAME_HEXSTRING,
-      version: await versionDotToHexString("00.00"),
-      logicCodeHash: keccak256(ContractDeployer__factory.bytecode),
-      rat: lastRegisteredAt,
-      uat: lastUpdatedAt,
-    } as IExpectedRecord);
-  });
-
   after("Wait for events", async () => {
     await delay(5000); // 2 sec
   });
@@ -269,11 +240,7 @@ describe("Contract Deployer - Use case", async () => {
   before("Init variables", async () => {
     // set default signer for this flow
     contractRegistry = contractRegistry.connect(users[0]);
-    // -- change contract deployer owner
-    const receipt = await (
-      await contractDeployer.transferOwnership(users[0].address, GAS_OPT)
-    ).wait();
-    expect(receipt).not.be.undefined;
+    
     contractDeployer = contractDeployer.connect(users[0]);
   });
   //* DEPLOY
@@ -285,7 +252,8 @@ describe("Contract Deployer - Use case", async () => {
         new Uint8Array(0),
         new Uint8Array(32),
         EXAMPLE_OWNER_NAME_HEXSTRING,
-        VERSION_HEX_STRING_ZERO
+        0,
+        GAS_OPT
       )
     ).to.be.revertedWith(REVERT_MESSAGES.erc1967.paramBytecode);
   });
@@ -297,7 +265,7 @@ describe("Contract Deployer - Use case", async () => {
         new Uint8Array(0),
         new Uint8Array(32),
         EXAMPLE_OWNER_NAME_HEXSTRING,
-        VERSION_HEX_STRING_ZERO,
+        0,
         GAS_OPT
       )
     ).wait();
@@ -307,7 +275,10 @@ describe("Contract Deployer - Use case", async () => {
     // save contract instance
     exampleOwner = new Contract(
       (
-        await contractRegistry.getRecordByName(EXAMPLE_OWNER_NAME_HEXSTRING, users[0].address)
+        await contractRegistry.getRecordByName(
+          EXAMPLE_OWNER_NAME_HEXSTRING,
+          contractDeployer.address
+        )
       ).record.proxy,
       ExampleOwner__factory.abi,
       users[0]
@@ -322,7 +293,7 @@ describe("Contract Deployer - Use case", async () => {
       logic: await contractDeployer.callStatic.getProxyImplementation(exampleOwner.address),
       admin: users[0].address,
       name: EXAMPLE_OWNER_NAME_HEXSTRING,
-      version: await versionDotToHexString("00.00"),
+      version: await versionDotToNum("00.00"),
       logicCodeHash: keccak256(ExampleOwner__factory.bytecode),
       rat: lastRegisteredAt,
       uat: lastUpdatedAt,
@@ -346,7 +317,7 @@ describe("Contract Deployer - Use case", async () => {
         ExampleOwnerV2__factory.bytecode,
         new Uint8Array(0),
         new Uint8Array(32),
-        await versionDotToHexString("01.00"),
+        await versionDotToNum("01.00"),
         GAS_OPT
       )
     ).wait();
@@ -362,7 +333,7 @@ describe("Contract Deployer - Use case", async () => {
       logic: await contractDeployer.callStatic.getProxyImplementation(exampleOwner.address),
       admin: users[0].address,
       name: EXAMPLE_OWNER_NAME_HEXSTRING,
-      version: await versionDotToHexString("01.00"),
+      version: await versionDotToNum("01.00"),
       logicCodeHash: keccak256(ExampleOwnerV2__factory.bytecode),
       rat: lastRegisteredAt,
       uat: lastUpdatedAt,

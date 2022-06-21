@@ -52,9 +52,9 @@ const _abi = [
       },
       {
         indexed: true,
-        internalType: "bytes2",
+        internalType: "uint16",
         name: "version",
-        type: "bytes2",
+        type: "uint16",
       },
       {
         indexed: true,
@@ -83,9 +83,9 @@ const _abi = [
       },
       {
         indexed: true,
-        internalType: "bytes2",
+        internalType: "uint16",
         name: "version",
-        type: "bytes2",
+        type: "uint16",
       },
       {
         indexed: true,
@@ -166,9 +166,9 @@ const _abi = [
             type: "bytes32",
           },
           {
-            internalType: "bytes2",
+            internalType: "uint16",
             name: "version",
-            type: "bytes2",
+            type: "uint16",
           },
           {
             internalType: "uint16",
@@ -242,9 +242,9 @@ const _abi = [
             type: "bytes32",
           },
           {
-            internalType: "bytes2",
+            internalType: "uint16",
             name: "version",
-            type: "bytes2",
+            type: "uint16",
           },
           {
             internalType: "uint16",
@@ -296,34 +296,6 @@ const _abi = [
         type: "address",
       },
       {
-        internalType: "bytes32",
-        name: "name",
-        type: "bytes32",
-      },
-      {
-        internalType: "bytes2",
-        name: "version",
-        type: "bytes2",
-      },
-      {
-        internalType: "bytes32",
-        name: "logicCodeHash",
-        type: "bytes32",
-      },
-    ],
-    name: "initialize",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "proxy",
-        type: "address",
-      },
-      {
         internalType: "address",
         name: "logic",
         type: "address",
@@ -334,9 +306,9 @@ const _abi = [
         type: "bytes32",
       },
       {
-        internalType: "bytes2",
+        internalType: "uint16",
         name: "version",
-        type: "bytes2",
+        type: "uint16",
       },
       {
         internalType: "bytes32",
@@ -367,9 +339,9 @@ const _abi = [
         type: "bytes32",
       },
       {
-        internalType: "bytes2",
+        internalType: "uint16",
         name: "version",
-        type: "bytes2",
+        type: "uint16",
       },
       {
         internalType: "bytes32",

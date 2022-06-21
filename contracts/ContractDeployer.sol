@@ -24,7 +24,7 @@ contract ContractDeployer is IContractDeployer, ProxyAdmin {
     if (name == bytes32(0)) {
       name = bytes32("ContractDeployer");
     }
-    defaultRegistry.register(address(this), address(this), name, bytes2(0), logicCodeHash);
+    defaultRegistry.register(address(this), address(this), name, uint16(0), logicCodeHash);
     // return control of the proxy
     defaultRegistry.changeRegisteredAdmin(address(this), _msgSender());
   }
@@ -35,8 +35,8 @@ contract ContractDeployer is IContractDeployer, ProxyAdmin {
     bytes memory data,
     bytes32 salt,
     bytes32 name,
-    bytes2 version
-  ) external {
+    uint16 version
+  ) external onlyOwner {
     // set default if empty
     if (address(registry) == address(0)) {
       registry = defaultRegistry;
@@ -56,11 +56,9 @@ contract ContractDeployer is IContractDeployer, ProxyAdmin {
     // the owner is the msg.sender. Implementation May or may not be ownable
     try Ownable(proxy).transferOwnership(_msgSender()) {} catch {}
 
-    if (registryAddr != address(0)) {
-      registry.register(proxy, logic, name, version, logicCodeHash);
-      // return control of the proxy
-      registry.changeRegisteredAdmin(proxy, _msgSender());
-    }
+    // Update record on ContractRegistry
+    registry.register(proxy, logic, name, version, logicCodeHash);
+
     emit ContractDeployed(registryAddr, proxy, name, version, logicCodeHash);
   }
 
@@ -70,8 +68,8 @@ contract ContractDeployer is IContractDeployer, ProxyAdmin {
     bytes memory bytecode,
     bytes memory data,
     bytes32 salt,
-    bytes2 version
-  ) external {
+    uint16 version
+  ) external onlyOwner {
     // set default if empty
     if (address(registry) == address(0)) {
       registry = defaultRegistry;
@@ -96,11 +94,9 @@ contract ContractDeployer is IContractDeployer, ProxyAdmin {
     // the owner is the msg.sender. May or may not be ownable
     try Ownable(proxyAddr).transferOwnership(_msgSender()) {} catch {}
 
-    if (registryAddr != address(0)) {
-      IContractRegistry(registry).update(proxyAddr, logic, bytes32(0), version, logicCodeHash);
-      // return control of the proxy
-      IContractRegistry(registry).changeRegisteredAdmin(proxyAddr, _msgSender());
-    }
+    // Update record on ContractRegistry
+    IContractRegistry(registry).update(proxyAddr, logic, bytes32(0), version, logicCodeHash);
+
     emit ContractUpgraded(registryAddr, proxyAddr, version, logicCodeHash);
   }
 }

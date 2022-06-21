@@ -16,14 +16,14 @@ interface IContractDeployer {
     address registry,
     address indexed proxy,
     bytes32 name,
-    bytes2 indexed version,
+    uint16 indexed version,
     bytes32 logicCodeHash
   );
   // Emits an event when a contract is successfully upgraded
   event ContractUpgraded(
     address indexed registry,
     address indexed proxy,
-    bytes2 indexed version,
+    uint16 indexed version,
     bytes32 logicCodeHash
   );
 
@@ -46,7 +46,7 @@ interface IContractDeployer {
     bytes memory data,
     bytes32 salt,
     bytes32 name,
-    bytes2 version
+    uint16 version
   ) external;
 
   /**
@@ -64,6 +64,6 @@ interface IContractDeployer {
     bytes calldata bytecode,
     bytes calldata data,
     bytes32 salt,
-    bytes2 version
+    uint16 version
   ) external;
 }

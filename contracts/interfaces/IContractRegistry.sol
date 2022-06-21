@@ -3,11 +3,12 @@ pragma solidity >=0.8.0 <0.9.0;
 
 // represents a contract record or a deployment of a contract in blockchain
 struct ContractRecord {
+  bytes32 id;    // identifies the contract by its sha3(name)
   address proxy; // use as ID too
   address logic;
   address admin;
-  bytes32 name; // must be unique OPT DEF: 0x00...00
-  bytes2 version;
+  bytes32 name; // must be unique
+  uint16 version; // limited to use 9999 as version = v99.99
   uint16 index; // index in array (limit of 65536 per admin)
   bytes32 logicCodeHash; // OPT def: 0x00...00
   uint256 rat; // Registered AT
@@ -25,14 +26,14 @@ interface IContractRegistry {
   event Registered(
     address indexed proxy,
     bytes32 name,
-    bytes2 indexed version,
+    uint16 indexed version,
     bytes32 indexed logicCodeHash
   );
   // should be emitted when a contract record is updated
   event Updated(
     address indexed proxy,
     bytes32 name,
-    bytes2 indexed version,
+    uint16 indexed version,
     bytes32 indexed logicCodeHash
   );
   // should be emitted when a contract record changes it's registered admin
@@ -40,20 +41,6 @@ interface IContractRegistry {
 
   // =========
   // FUNCTIONS
-  /**
-   * @notice Initializes the contract and adds intself as first record
-   * @dev The logic address in not needed because is the address(this)
-   * @param proxy address of the proxy | storage contract
-   * @param name (optional) [ContractRegistry] name to identify this contract
-   * @param version (optional) [00.00] initial version of the contract
-   * @param logicCodeHash the external bytecode or deployBytecode or off-chain bytecode
-   */
-  function initialize(
-    address proxy,
-    bytes32 name,
-    bytes2 version,
-    bytes32 logicCodeHash
-  ) external;
 
   /**
    * @notice Registers a contract deployed as a new ContractRecord
@@ -67,7 +54,7 @@ interface IContractRegistry {
     address proxy,
     address logic,
     bytes32 name,
-    bytes2 version,
+    uint16 version,
     bytes32 logicCodeHash
   ) external;
 
@@ -83,7 +70,7 @@ interface IContractRegistry {
     address proxy,
     address logic,
     bytes32 actualName,
-    bytes2 version,
+    uint16 version,
     bytes32 logicCodeHash
   ) external;
 

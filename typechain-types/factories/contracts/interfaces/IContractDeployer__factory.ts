@@ -33,9 +33,9 @@ const _abi = [
       },
       {
         indexed: true,
-        internalType: "bytes2",
+        internalType: "uint16",
         name: "version",
-        type: "bytes2",
+        type: "uint16",
       },
       {
         indexed: false,
@@ -64,9 +64,9 @@ const _abi = [
       },
       {
         indexed: true,
-        internalType: "bytes2",
+        internalType: "uint16",
         name: "version",
-        type: "bytes2",
+        type: "uint16",
       },
       {
         indexed: false,
@@ -106,9 +106,9 @@ const _abi = [
         type: "bytes32",
       },
       {
-        internalType: "bytes2",
+        internalType: "uint16",
         name: "version",
-        type: "bytes2",
+        type: "uint16",
       },
     ],
     name: "deployContract",
@@ -144,9 +144,9 @@ const _abi = [
         type: "bytes32",
       },
       {
-        internalType: "bytes2",
+        internalType: "uint16",
         name: "version",
-        type: "bytes2",
+        type: "uint16",
       },
     ],
     name: "upgradeContract",

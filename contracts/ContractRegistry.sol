@@ -1,10 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity >=0.8.0 <0.9.0;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { OwnableUpgradeable as Ownable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Create2.sol";
 import { TransparentUpgradeableProxy as TUP } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import { Create2Upgradeable as Create2 } from "@openzeppelin/contracts-upgradeable/utils/Create2Upgradeable.sol";
 import { ContractRecord, IContractRegistry } from "./interfaces/IContractRegistry.sol";
 
 /**
@@ -13,14 +12,18 @@ import { ContractRecord, IContractRegistry } from "./interfaces/IContractRegistr
  * @dev This Smart Contract is in charge of keep a registry of deployed SC
  *      for a given system. It can also deploy or upgrade them
  */
-contract ContractRegistry is IContractRegistry, Initializable, Ownable {
+contract ContractRegistry is IContractRegistry, Ownable {
+  // ======
+  // CONSTANTS
+  uint16 private constant MAX_VERSION = 9999;
+
   // ======
   // VARIABLES
   // Store Contract Records associated to the proxy address
-  mapping(address => ContractRecord) private contractRecords;
+  // mapping(address => ContractRecord) private contractRecords;
   // Relation to be able to find Record by Name related to an admin
-  // --   (admin,            name) --> proxy
-  mapping(address => mapping(bytes32 => address)) private nameToProxy;
+  // --   ((admin,          sha3(name)) ) --> proxy
+  mapping(address => mapping(bytes32 => mapping(uint16 => ContractRecord))) private nameToProxy; //contractRecords
   // Relation between admin and contract record names (list)
   // --   admin --> names[]
   mapping(address => bytes32[]) private adminRecordNames;
@@ -28,22 +31,21 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
   // =========
   // FUNCTIONS
   /**
-  0. Initialize function that acts like a constructor
-  */
-  function initialize(
-    address proxy,
+   * @notice Initializes the contract and adds intself as first record
+   * @dev The logic address in not needed because is the address(this)
+   * @param name (optional) [ContractRegistry] name to identify this contract
+   * @param version (optional) [00.00] initial version of the contract
+   * @param logicCodeHash the external bytecode or deployBytecode or off-chain bytecode
+   */
+  constructor(
     bytes32 name,
-    bytes2 version,
+    uint16 version,
     bytes32 logicCodeHash
-  ) external initializer {
-    __Ownable_init();
-    if (proxy == address(0)) {
-      proxy = address(this);
-    }
+  ) {
     if (name == bytes32(0)) {
       name = bytes32("ContractRegistry");
     }
-    _register(proxy, address(this), name, version, logicCodeHash);
+    _register(address(this), address(this), name, version, logicCodeHash);
   }
 
   // upgrade
@@ -52,7 +54,7 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
     address proxy,
     address logic,
     bytes32 name,
-    bytes2 version,
+    uint16 version,
     bytes32 logicCodeHash
   ) external {
     _register(proxy, logic, name, version, logicCodeHash);
@@ -62,7 +64,7 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
     address proxy,
     address logic,
     bytes32 actualName,
-    bytes2 version,
+    uint16 version,
     bytes32 logicCodeHash
   ) external {
     if (proxy == address(0) && actualName != bytes32(0)) {
@@ -129,7 +131,7 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
     address proxy,
     address logic,
     bytes32 name,
-    bytes2 version,
+    uint16 version,
     bytes32 logicCodeHash
   ) internal {
     // Parameter checks
@@ -143,6 +145,7 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
       name != bytes32(0) && nameToProxy[_msgSender()][nameHash] == address(0),
       "Name must be unique or null"
     );
+    require(version <= MAX_VERSION, "Version must be lower than 9999");
     // Other checks
     ContractRecord storage record = contractRecords[proxy];
     require(record.rat == 0, "Contract already registered");
@@ -168,7 +171,7 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
   function _update(
     address proxy,
     address logic,
-    bytes2 version,
+    uint16 version,
     bytes32 logicCodeHash
   ) internal {
     // Parameter checks
@@ -182,7 +185,10 @@ contract ContractRegistry is IContractRegistry, Initializable, Ownable {
     // -- check if diferent logic address
     require(record.logic != logic, "Logic already updated");
     require(record.logicCodeHash != logicCodeHash, "Logic hash already updated");
-    require(version != record.version, "New version must be higher");
+    if (version == uint16(0)) {
+      version = record.version + 1;
+    }
+    require(version >= record.version, "New version must be higher");
     // -- check if msg.sender is the admin how registred it
     require(record.admin == _msgSender(), "You are not the admin");
     // Update in storage
