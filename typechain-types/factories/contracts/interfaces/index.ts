@@ -3,3 +3,4 @@
 /* eslint-disable */
 export { IContractDeployer__factory } from "./IContractDeployer__factory";
 export { IContractRegistry__factory } from "./IContractRegistry__factory";
+export { IUpgradeableDeployer__factory } from "./IUpgradeableDeployer__factory";

@@ -14,6 +14,12 @@ const _abi = [
     anonymous: false,
     inputs: [
       {
+        indexed: false,
+        internalType: "bytes32",
+        name: "name",
+        type: "bytes32",
+      },
+      {
         indexed: true,
         internalType: "address",
         name: "oldAdmin",
@@ -25,12 +31,6 @@ const _abi = [
         name: "newAdmin",
         type: "address",
       },
-      {
-        indexed: false,
-        internalType: "bytes32",
-        name: "name",
-        type: "bytes32",
-      },
     ],
     name: "AdminChanged",
     type: "event",
@@ -40,35 +40,10 @@ const _abi = [
     inputs: [
       {
         indexed: true,
-        internalType: "address",
-        name: "proxy",
-        type: "address",
-      },
-      {
-        indexed: false,
         internalType: "bytes32",
         name: "name",
         type: "bytes32",
       },
-      {
-        indexed: true,
-        internalType: "uint16",
-        name: "version",
-        type: "uint16",
-      },
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "logicCodeHash",
-        type: "bytes32",
-      },
-    ],
-    name: "Registered",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
       {
         indexed: true,
         internalType: "address",
@@ -77,9 +52,9 @@ const _abi = [
       },
       {
         indexed: false,
-        internalType: "bytes32",
-        name: "name",
-        type: "bytes32",
+        internalType: "address",
+        name: "logic",
+        type: "address",
       },
       {
         indexed: true,
@@ -88,21 +63,21 @@ const _abi = [
         type: "uint16",
       },
       {
-        indexed: true,
+        indexed: false,
         internalType: "bytes32",
         name: "logicCodeHash",
         type: "bytes32",
       },
     ],
-    name: "Updated",
+    name: "NewRecord",
     type: "event",
   },
   {
     inputs: [
       {
-        internalType: "address",
-        name: "proxy",
-        type: "address",
+        internalType: "bytes32",
+        name: "name",
+        type: "bytes32",
       },
       {
         internalType: "address",
@@ -121,79 +96,8 @@ const _abi = [
     outputs: [
       {
         internalType: "bytes32[]",
-        name: "contractNames",
+        name: "latestRecords",
         type: "bytes32[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "proxy",
-        type: "address",
-      },
-    ],
-    name: "getRecord",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "found",
-        type: "bool",
-      },
-      {
-        components: [
-          {
-            internalType: "address",
-            name: "proxy",
-            type: "address",
-          },
-          {
-            internalType: "address",
-            name: "logic",
-            type: "address",
-          },
-          {
-            internalType: "address",
-            name: "admin",
-            type: "address",
-          },
-          {
-            internalType: "bytes32",
-            name: "name",
-            type: "bytes32",
-          },
-          {
-            internalType: "uint16",
-            name: "version",
-            type: "uint16",
-          },
-          {
-            internalType: "uint16",
-            name: "index",
-            type: "uint16",
-          },
-          {
-            internalType: "bytes32",
-            name: "logicCodeHash",
-            type: "bytes32",
-          },
-          {
-            internalType: "uint256",
-            name: "rat",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "uat",
-            type: "uint256",
-          },
-        ],
-        internalType: "struct ContractRecord",
-        name: "record",
-        type: "tuple",
       },
     ],
     stateMutability: "view",
@@ -211,8 +115,42 @@ const _abi = [
         name: "admin",
         type: "address",
       },
+      {
+        internalType: "uint16",
+        name: "version",
+        type: "uint16",
+      },
     ],
-    name: "getRecordByName",
+    name: "getProxyAddress",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "name",
+        type: "bytes32",
+      },
+      {
+        internalType: "address",
+        name: "admin",
+        type: "address",
+      },
+      {
+        internalType: "uint16",
+        name: "version",
+        type: "uint16",
+      },
+    ],
+    name: "getRecord",
     outputs: [
       {
         internalType: "bool",
@@ -221,6 +159,11 @@ const _abi = [
       },
       {
         components: [
+          {
+            internalType: "bytes32",
+            name: "name",
+            type: "bytes32",
+          },
           {
             internalType: "address",
             name: "proxy",
@@ -237,18 +180,8 @@ const _abi = [
             type: "address",
           },
           {
-            internalType: "bytes32",
-            name: "name",
-            type: "bytes32",
-          },
-          {
             internalType: "uint16",
             name: "version",
-            type: "uint16",
-          },
-          {
-            internalType: "uint16",
-            name: "index",
             type: "uint16",
           },
           {
@@ -258,12 +191,7 @@ const _abi = [
           },
           {
             internalType: "uint256",
-            name: "rat",
-            type: "uint256",
-          },
-          {
-            internalType: "uint256",
-            name: "uat",
+            name: "timestamp",
             type: "uint256",
           },
         ],
@@ -281,7 +209,7 @@ const _abi = [
     outputs: [
       {
         internalType: "bytes32[]",
-        name: "contractNames",
+        name: "latestRecords",
         type: "bytes32[]",
       },
     ],
@@ -290,6 +218,11 @@ const _abi = [
   },
   {
     inputs: [
+      {
+        internalType: "bytes32",
+        name: "name",
+        type: "bytes32",
+      },
       {
         internalType: "address",
         name: "proxy",
@@ -301,11 +234,6 @@ const _abi = [
         type: "address",
       },
       {
-        internalType: "bytes32",
-        name: "name",
-        type: "bytes32",
-      },
-      {
         internalType: "uint16",
         name: "version",
         type: "uint16",
@@ -314,6 +242,11 @@ const _abi = [
         internalType: "bytes32",
         name: "logicCodeHash",
         type: "bytes32",
+      },
+      {
+        internalType: "address",
+        name: "admin",
+        type: "address",
       },
     ],
     name: "register",
@@ -324,6 +257,11 @@ const _abi = [
   {
     inputs: [
       {
+        internalType: "bytes32",
+        name: "name",
+        type: "bytes32",
+      },
+      {
         internalType: "address",
         name: "proxy",
         type: "address",
@@ -334,9 +272,9 @@ const _abi = [
         type: "address",
       },
       {
-        internalType: "bytes32",
-        name: "actualName",
-        type: "bytes32",
+        internalType: "address",
+        name: "newAdmin",
+        type: "address",
       },
       {
         internalType: "uint16",
@@ -347,6 +285,11 @@ const _abi = [
         internalType: "bytes32",
         name: "logicCodeHash",
         type: "bytes32",
+      },
+      {
+        internalType: "address",
+        name: "admin",
+        type: "address",
       },
     ],
     name: "update",

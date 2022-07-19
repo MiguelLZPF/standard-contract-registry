@@ -3,3 +3,4 @@
 /* eslint-disable */
 export type { IContractDeployer } from "./IContractDeployer";
 export type { IContractRegistry } from "./IContractRegistry";
+export type { IUpgradeableDeployer } from "./IUpgradeableDeployer";

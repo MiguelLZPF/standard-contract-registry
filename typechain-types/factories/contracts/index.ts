@@ -9,3 +9,4 @@ export * as external from "./external";
 export * as interfaces from "./interfaces";
 export { ContractDeployer__factory } from "./ContractDeployer__factory";
 export { ContractRegistry__factory } from "./ContractRegistry__factory";
+export { UpgradeableDeployer__factory } from "./UpgradeableDeployer__factory";

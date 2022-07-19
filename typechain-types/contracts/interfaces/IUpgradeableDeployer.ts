@@ -27,12 +27,15 @@ import type {
   PromiseOrValue,
 } from "../../common";
 
-export interface IContractDeployerInterface extends utils.Interface {
+export interface IUpgradeableDeployerInterface extends utils.Interface {
   functions: {
     "deployContract(address,bytes,bytes,bytes32,bytes32,uint16)": FunctionFragment;
+    "upgradeContract(address,bytes32,bytes,bytes,bytes32,uint16,address)": FunctionFragment;
   };
 
-  getFunction(nameOrSignatureOrTopic: "deployContract"): FunctionFragment;
+  getFunction(
+    nameOrSignatureOrTopic: "deployContract" | "upgradeContract"
+  ): FunctionFragment;
 
   encodeFunctionData(
     functionFragment: "deployContract",
@@ -45,17 +48,35 @@ export interface IContractDeployerInterface extends utils.Interface {
       PromiseOrValue<BigNumberish>
     ]
   ): string;
+  encodeFunctionData(
+    functionFragment: "upgradeContract",
+    values: [
+      PromiseOrValue<string>,
+      PromiseOrValue<BytesLike>,
+      PromiseOrValue<BytesLike>,
+      PromiseOrValue<BytesLike>,
+      PromiseOrValue<BytesLike>,
+      PromiseOrValue<BigNumberish>,
+      PromiseOrValue<string>
+    ]
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "deployContract",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "upgradeContract",
+    data: BytesLike
+  ): Result;
 
   events: {
     "ContractDeployed(address,bytes32,address,uint16,bytes32)": EventFragment;
+    "ContractUpgraded(address,bytes32,address,uint16,bytes32)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "ContractDeployed"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "ContractUpgraded"): EventFragment;
 }
 
 export interface ContractDeployedEventObject {
@@ -73,12 +94,27 @@ export type ContractDeployedEvent = TypedEvent<
 export type ContractDeployedEventFilter =
   TypedEventFilter<ContractDeployedEvent>;
 
-export interface IContractDeployer extends BaseContract {
+export interface ContractUpgradedEventObject {
+  registry: string;
+  name: string;
+  proxy: string;
+  version: number;
+  logicCodeHash: string;
+}
+export type ContractUpgradedEvent = TypedEvent<
+  [string, string, string, number, string],
+  ContractUpgradedEventObject
+>;
+
+export type ContractUpgradedEventFilter =
+  TypedEventFilter<ContractUpgradedEvent>;
+
+export interface IUpgradeableDeployer extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
 
-  interface: IContractDeployerInterface;
+  interface: IUpgradeableDeployerInterface;
 
   queryFilter<TEvent extends TypedEvent>(
     event: TypedEventFilter<TEvent>,
@@ -109,6 +145,17 @@ export interface IContractDeployer extends BaseContract {
       version: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
+
+    upgradeContract(
+      registry: PromiseOrValue<string>,
+      name: PromiseOrValue<BytesLike>,
+      bytecode: PromiseOrValue<BytesLike>,
+      data: PromiseOrValue<BytesLike>,
+      salt: PromiseOrValue<BytesLike>,
+      version: PromiseOrValue<BigNumberish>,
+      newAdmin: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
   };
 
   deployContract(
@@ -121,6 +168,17 @@ export interface IContractDeployer extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  upgradeContract(
+    registry: PromiseOrValue<string>,
+    name: PromiseOrValue<BytesLike>,
+    bytecode: PromiseOrValue<BytesLike>,
+    data: PromiseOrValue<BytesLike>,
+    salt: PromiseOrValue<BytesLike>,
+    version: PromiseOrValue<BigNumberish>,
+    newAdmin: PromiseOrValue<string>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
   callStatic: {
     deployContract(
       registry: PromiseOrValue<string>,
@@ -129,6 +187,17 @@ export interface IContractDeployer extends BaseContract {
       salt: PromiseOrValue<BytesLike>,
       name: PromiseOrValue<BytesLike>,
       version: PromiseOrValue<BigNumberish>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    upgradeContract(
+      registry: PromiseOrValue<string>,
+      name: PromiseOrValue<BytesLike>,
+      bytecode: PromiseOrValue<BytesLike>,
+      data: PromiseOrValue<BytesLike>,
+      salt: PromiseOrValue<BytesLike>,
+      version: PromiseOrValue<BigNumberish>,
+      newAdmin: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -148,6 +217,21 @@ export interface IContractDeployer extends BaseContract {
       version?: PromiseOrValue<BigNumberish> | null,
       logicCodeHash?: null
     ): ContractDeployedEventFilter;
+
+    "ContractUpgraded(address,bytes32,address,uint16,bytes32)"(
+      registry?: null,
+      name?: PromiseOrValue<BytesLike> | null,
+      proxy?: PromiseOrValue<string> | null,
+      version?: PromiseOrValue<BigNumberish> | null,
+      logicCodeHash?: null
+    ): ContractUpgradedEventFilter;
+    ContractUpgraded(
+      registry?: null,
+      name?: PromiseOrValue<BytesLike> | null,
+      proxy?: PromiseOrValue<string> | null,
+      version?: PromiseOrValue<BigNumberish> | null,
+      logicCodeHash?: null
+    ): ContractUpgradedEventFilter;
   };
 
   estimateGas: {
@@ -160,6 +244,17 @@ export interface IContractDeployer extends BaseContract {
       version: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
+
+    upgradeContract(
+      registry: PromiseOrValue<string>,
+      name: PromiseOrValue<BytesLike>,
+      bytecode: PromiseOrValue<BytesLike>,
+      data: PromiseOrValue<BytesLike>,
+      salt: PromiseOrValue<BytesLike>,
+      version: PromiseOrValue<BigNumberish>,
+      newAdmin: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -170,6 +265,17 @@ export interface IContractDeployer extends BaseContract {
       salt: PromiseOrValue<BytesLike>,
       name: PromiseOrValue<BytesLike>,
       version: PromiseOrValue<BigNumberish>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    upgradeContract(
+      registry: PromiseOrValue<string>,
+      name: PromiseOrValue<BytesLike>,
+      bytecode: PromiseOrValue<BytesLike>,
+      data: PromiseOrValue<BytesLike>,
+      salt: PromiseOrValue<BytesLike>,
+      version: PromiseOrValue<BigNumberish>,
+      newAdmin: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };

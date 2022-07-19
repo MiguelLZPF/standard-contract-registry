@@ -21,15 +21,15 @@ const _abi = [
       },
       {
         indexed: true,
-        internalType: "address",
-        name: "proxy",
-        type: "address",
-      },
-      {
-        indexed: false,
         internalType: "bytes32",
         name: "name",
         type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "proxyOrLogic",
+        type: "address",
       },
       {
         indexed: true,
@@ -45,37 +45,6 @@ const _abi = [
       },
     ],
     name: "ContractDeployed",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "registry",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "proxy",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "uint16",
-        name: "version",
-        type: "uint16",
-      },
-      {
-        indexed: false,
-        internalType: "bytes32",
-        name: "logicCodeHash",
-        type: "bytes32",
-      },
-    ],
-    name: "ContractUpgraded",
     type: "event",
   },
   {
@@ -112,44 +81,6 @@ const _abi = [
       },
     ],
     name: "deployContract",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "contract IContractRegistry",
-        name: "registry",
-        type: "address",
-      },
-      {
-        internalType: "contract TransparentUpgradeableProxy",
-        name: "proxy",
-        type: "address",
-      },
-      {
-        internalType: "bytes",
-        name: "bytecode",
-        type: "bytes",
-      },
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
-      },
-      {
-        internalType: "bytes32",
-        name: "salt",
-        type: "bytes32",
-      },
-      {
-        internalType: "uint16",
-        name: "version",
-        type: "uint16",
-      },
-    ],
-    name: "upgradeContract",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

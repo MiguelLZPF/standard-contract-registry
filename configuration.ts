@@ -42,11 +42,17 @@ const DEPLOY = {
 };
 
 const CONTRACT = {
+  codeTrust: {
+    name: "CodeTrust",
+  },
   contractRegistry: {
     name: "ContractRegistry",
   },
   contractDeployer: {
     name: "ContractDeployer",
+  },
+  upgradeableDeployer: {
+    name: "UpgradeableDeployer",
   },
   exampleBallot: {
     name: "ExampleBallot",
