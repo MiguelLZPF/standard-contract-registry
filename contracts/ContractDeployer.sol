@@ -5,6 +5,11 @@ import "@openzeppelin/contracts/utils/Create2.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IContractDeployer, IContractRegistry } from "./interfaces/IContractDeployer.sol";
 
+/**
+ * @title Contract Deployer
+ * @author Miguel Gomez Carpena
+ * @notice To check function documentation, please see IContractDeployer documentation
+ */
 contract ContractDeployer is IContractDeployer {
   IContractRegistry private defaultRegistry;
 

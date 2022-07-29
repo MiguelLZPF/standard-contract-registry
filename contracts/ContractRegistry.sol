@@ -3,7 +3,6 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
-// import { TransparentUpgradeableProxy as TUP } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "./interfaces/IContractRegistry.sol";
 import "./external/ICodeTrust.sol";
 
@@ -11,7 +10,7 @@ import "./external/ICodeTrust.sol";
  * @title Contract Registry
  * @author Miguel Gomez Carpena
  * @dev This Smart Contract is in charge of keep a registry of deployed SC
- *      for a given system. It can also deploy or upgrade them
+ *      for a given system. To check function documentation, please see IContractRegistry documentation
  */
 contract ContractRegistry is IContractRegistry, Ownable {
   // ======
@@ -21,23 +20,21 @@ contract ContractRegistry is IContractRegistry, Ownable {
 
   // ======
   // VARIABLES
-  // Store Contract Records associated to the proxy address
+  // Code trust contract needed for this contrac to trust another ones (normally the ContractDeployer or the UpgradeableDeployer)
   ICodeTrust private codeTrust;
   // Relation to be able to find Record by Name related to an admin
   // --   ((admin,           name)              version) --> proxy
   mapping(address => mapping(bytes32 => mapping(uint16 => ContractRecord))) private contractRecords;
-
+  // Relation to link metadata with an admin
+  // --   admin  --> metadata
   mapping(address => Metadata) private metadata;
-
-  // Relation between admin and contract record names (list)
-  // --   admin --> names[]
-  //mapping(address => bytes32[]) private adminRecordNames;
 
   // =========
   // FUNCTIONS
   /**
    * @notice Initializes the contract and adds intself as first record
    * @dev The logic address in not needed because is the address(this)
+   * @param initCodeTrust the initial code trust to be used
    * @param name (optional) [ContractRegistry] name to identify this contract
    * @param version (optional) [00.00] initial version of the contract
    * @param logicCodeHash the external bytecode or deployBytecode or off-chain bytecode
@@ -136,19 +133,6 @@ contract ContractRegistry is IContractRegistry, Ownable {
 
   function getMyRecords() external view returns (bytes32[] memory latestRecords) {
     return _getRecords(_msgSender());
-  }
-
-  function getProxyAddress(
-    bytes32 name,
-    address admin,
-    uint16 version
-  ) external view returns (address) {
-    (bool found, ContractRecord memory record) = _getRecord(name, admin, version);
-    if (!found) {
-      return address(0);
-    } else {
-      return record.proxy;
-    }
   }
 
   function _register(

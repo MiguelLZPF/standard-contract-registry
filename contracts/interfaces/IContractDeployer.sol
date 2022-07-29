@@ -4,7 +4,7 @@ pragma solidity >=0.8.0 <0.9.0;
 import { IContractRegistry } from "./IContractRegistry.sol";
 
 /**
- * @title Contract Registry Interface
+ * @title Contract Deployer Interface
  * @author Miguel Gomez Carpena
  * @dev Interface for ContractDeployer Smart Contract
  */
@@ -22,14 +22,15 @@ interface IContractDeployer {
   // =========
   // FUNCTIONS
   /**
-   * @notice Deploys a new contract as upgradeable and registerd a new ContractRecord
-   * @dev It needs a Contract Registry to register de deployment information
-   * @param registry ContractRegistry SC to register the new ContractRecord
+   * @notice Deploys a new contract and registers a new ContractRecord in the ContractRegistry
+   * @dev It needs a ContractRegistry SC to register de deployment information
+   * @dev It uses Create2 function to deploy the contract
+   * @param registry ContractRegistry SC to register the newly deployed ContractRecord
    * @param bytecode The complete bytecode of the contract to be deployed
    * @param data ABI Encoded initialize call data
-   * @param salt (optional) see Create2
-   * @param name Name to identify this contract
-   * @param version Initial version of the contract
+   * @param salt (optional) [0x00...00] see Create2
+   * @param name Name to identify this contractRecord
+   * @param version (optional) [00.00] Initial version of the contract
    */
   function deployContract(
     IContractRegistry registry,

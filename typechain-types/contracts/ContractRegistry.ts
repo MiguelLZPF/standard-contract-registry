@@ -59,7 +59,6 @@ export interface ContractRegistryInterface extends utils.Interface {
   functions: {
     "changeRegisteredAdmin(bytes32,address)": FunctionFragment;
     "getMyRecords()": FunctionFragment;
-    "getProxyAddress(bytes32,address,uint16)": FunctionFragment;
     "getRecord(bytes32,address,uint16)": FunctionFragment;
     "getSystemRecords()": FunctionFragment;
     "owner()": FunctionFragment;
@@ -73,7 +72,6 @@ export interface ContractRegistryInterface extends utils.Interface {
     nameOrSignatureOrTopic:
       | "changeRegisteredAdmin"
       | "getMyRecords"
-      | "getProxyAddress"
       | "getRecord"
       | "getSystemRecords"
       | "owner"
@@ -90,14 +88,6 @@ export interface ContractRegistryInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "getMyRecords",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getProxyAddress",
-    values: [
-      PromiseOrValue<BytesLike>,
-      PromiseOrValue<string>,
-      PromiseOrValue<BigNumberish>
-    ]
   ): string;
   encodeFunctionData(
     functionFragment: "getRecord",
@@ -150,10 +140,6 @@ export interface ContractRegistryInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getMyRecords",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getProxyAddress",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getRecord", data: BytesLike): Result;
@@ -259,13 +245,6 @@ export interface ContractRegistry extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[string[]] & { latestRecords: string[] }>;
 
-    getProxyAddress(
-      name: PromiseOrValue<BytesLike>,
-      admin: PromiseOrValue<string>,
-      version: PromiseOrValue<BigNumberish>,
-      overrides?: CallOverrides
-    ): Promise<[string]>;
-
     getRecord(
       name: PromiseOrValue<BytesLike>,
       admin: PromiseOrValue<string>,
@@ -323,13 +302,6 @@ export interface ContractRegistry extends BaseContract {
 
   getMyRecords(overrides?: CallOverrides): Promise<string[]>;
 
-  getProxyAddress(
-    name: PromiseOrValue<BytesLike>,
-    admin: PromiseOrValue<string>,
-    version: PromiseOrValue<BigNumberish>,
-    overrides?: CallOverrides
-  ): Promise<string>;
-
   getRecord(
     name: PromiseOrValue<BytesLike>,
     admin: PromiseOrValue<string>,
@@ -384,13 +356,6 @@ export interface ContractRegistry extends BaseContract {
     ): Promise<void>;
 
     getMyRecords(overrides?: CallOverrides): Promise<string[]>;
-
-    getProxyAddress(
-      name: PromiseOrValue<BytesLike>,
-      admin: PromiseOrValue<string>,
-      version: PromiseOrValue<BigNumberish>,
-      overrides?: CallOverrides
-    ): Promise<string>;
 
     getRecord(
       name: PromiseOrValue<BytesLike>,
@@ -483,13 +448,6 @@ export interface ContractRegistry extends BaseContract {
 
     getMyRecords(overrides?: CallOverrides): Promise<BigNumber>;
 
-    getProxyAddress(
-      name: PromiseOrValue<BytesLike>,
-      admin: PromiseOrValue<string>,
-      version: PromiseOrValue<BigNumberish>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getRecord(
       name: PromiseOrValue<BytesLike>,
       admin: PromiseOrValue<string>,
@@ -540,13 +498,6 @@ export interface ContractRegistry extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     getMyRecords(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    getProxyAddress(
-      name: PromiseOrValue<BytesLike>,
-      admin: PromiseOrValue<string>,
-      version: PromiseOrValue<BigNumberish>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
 
     getRecord(
       name: PromiseOrValue<BytesLike>,

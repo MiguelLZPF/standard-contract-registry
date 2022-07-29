@@ -3,8 +3,14 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
-import { IUpgradeableDeployer, IContractRegistry } from "./interfaces/IUpgradeableDeployer.sol";
+import "./interfaces/IUpgradeableDeployer.sol";
 
+/**
+ * @title Contract Registry
+ * @author Miguel Gomez Carpena
+ * @dev This Smart Contract extends the ProxyAdmin functionality and, therefore, is owned by an admin or account.
+ *      To check function documentation, please see IContractRegistry documentation
+ */
 contract UpgradeableDeployer is IUpgradeableDeployer, ProxyAdmin {
   IContractRegistry private defaultRegistry;
 
@@ -66,7 +72,8 @@ contract UpgradeableDeployer is IUpgradeableDeployer, ProxyAdmin {
     }
     address registryAddr = address(registry);
     // get proxy by record's name
-    address proxyAddr = registry.getProxyAddress(name, _msgSender(), 0);
+    (, ContractRecord memory record) = registry.getRecord(name, _msgSender(), 10000);
+    address proxyAddr = record.proxy;
     TransparentUpgradeableProxy proxy = TransparentUpgradeableProxy(payable(proxyAddr));
     // check if salt is empty and generate a random salt
     if (salt == bytes32(0)) {

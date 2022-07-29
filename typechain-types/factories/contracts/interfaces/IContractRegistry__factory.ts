@@ -121,35 +121,6 @@ const _abi = [
         type: "uint16",
       },
     ],
-    name: "getProxyAddress",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "name",
-        type: "bytes32",
-      },
-      {
-        internalType: "address",
-        name: "admin",
-        type: "address",
-      },
-      {
-        internalType: "uint16",
-        name: "version",
-        type: "uint16",
-      },
-    ],
     name: "getRecord",
     outputs: [
       {

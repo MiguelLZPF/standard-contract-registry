@@ -2,12 +2,13 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import { IContractDeployer, IContractRegistry } from "./IContractDeployer.sol";
+import { IContractDeployer } from "./IContractDeployer.sol";
+import { IContractRegistry, ContractRecord } from "./IContractRegistry.sol";
 
 /**
- * @title Contract Registry Interface
+ * @title Upgradeable Deployer Interface
  * @author Miguel Gomez Carpena
- * @dev Interface for ContractDeployer Smart Contract
+ * @dev Interface for UpgradeableDeployer Smart Contract
  */
 interface IUpgradeableDeployer is IContractDeployer {
   // EVENTS
