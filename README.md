@@ -2,12 +2,12 @@
 
 Before run anything, make sure you run `npm install`.
 
-This project aims to provide an easy to use On-Blockchain Standard Contract Registry that can be used to manage multiple groups of smart contracts and it's addresses. The main contract is the ContractRegistry, where the actual registry is stored. This contract is supported by an optional ContractDeployer, that makes it easier the deployment and upgrade of upgradeable contracts, all On-Chain using Create2.
+This project aims to provide an easy to use On-Blockchain Standard Contract Registry that can be used to manage multiple groups of smart contracts and its addresses and versions. The main contract is the ContractRegistry, where the actual registry is stored. This contract is supported by an optional ContractDeployer, that makes it easier the deployment of generic regular contracts and another UpgradeableDeployer that acts as a ProxyAdmin but it also manages the deployment of upgradeable contracts that deploys and upgrade them, all On-Chain using Create2.
 
 The structure follows a Hardhat project environment using ethers, waffle and chai. It also use typescript and generates smart contract types using typechain. The --network parameter refers to the network to be used defined in the [hardhat config file](./hardhat.config.ts).
 
-- [1. Blockchain Services Smart Contracts project](#1-blockchain-services-smart-contracts-project)
-  - [1.1. Environmental variables / constants](#11-environmental-variables--constants)
+- [1. Standard Contract Registry project - SCR](#1-standard-contract-registry-project---scr)
+  - [1.1. Configuration file constants](#11-configuration-file-constants)
   - [1.2. Manage Hardware Wallets](#12-manage-hardware-wallets)
     - [1.2.1. Relevant Constants](#121-relevant-constants)
     - [1.2.2. Generate one Random Wallet](#122-generate-one-random-wallet)
@@ -21,7 +21,12 @@ The structure follows a Hardhat project environment using ethers, waffle and cha
     - [1.3.3. Upgradeable deployment](#133-upgradeable-deployment)
     - [1.3.4. Upgrade deployed Smart Contract](#134-upgrade-deployed-smart-contract)
   - [1.4. Unit Test](#14-unit-test)
-    - [1.4.1. Run Certification test](#141-run-certification-test)
+    - [1.4.1. Run ContractRegistry test](#141-run-contractregistry-test)
+    - [1.4.2. Run ContractDeployer test](#142-run-contractdeployer-test)
+    - [1.4.3. Run UpgradeableDeployer test](#143-run-upgradeabledeployer-test)
+  - [1.5. Results](#15-results)
+    - [1.5.1. Compilation](#151-compilation)
+    - [1.5.2. Tests (gas)](#152-tests-gas)
 
 ## 1.1. Configuration file constants
 
@@ -159,15 +164,20 @@ There is one unit test for each Smart Contract located in "test/{ContractName}.t
 
 `npx hardhat test test/ContractRegistry.test.ts --network hardhat`
 
-### 1.4.1. Run ContractDeployer test
+### 1.4.2. Run ContractDeployer test
 
 `npx hardhat test test/ContractDeployer.test.ts --network hardhat`
+
+### 1.4.3. Run UpgradeableDeployer test
+
+`npx hardhat test test/UpgradeableDeployer.test.ts --network hardhat`
+
 ## 1.5. Results
 
 ### 1.5.1. Compilation
 
-![image](https://user-images.githubusercontent.com/10762009/159353267-ec5dfb51-9f68-45ce-b7fe-0f0e79beab39.png)
+![image](https://user-images.githubusercontent.com/10762009/183726040-dfc398ff-08b9-41cb-b0a7-855e15513680.png)
 
 ### 1.5.2. Tests (gas)
 
-![image](https://user-images.githubusercontent.com/10762009/159353636-41e6fedb-c967-474a-a448-eee4daff048a.png)
+![image](https://user-images.githubusercontent.com/10762009/183726054-c65de528-4786-4fdc-920a-c8fdbf56fcbe.png)
