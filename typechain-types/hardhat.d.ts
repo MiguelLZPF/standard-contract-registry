@@ -93,6 +93,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ICodeTrust__factory>;
     getContractFactory(
+      name: "ICodeTrust",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ICodeTrust__factory>;
+    getContractFactory(
       name: "ProxyAdmin",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ProxyAdmin__factory>;
@@ -208,6 +212,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.CodeTrust>;
+    getContractAt(
+      name: "ICodeTrust",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ICodeTrust>;
     getContractAt(
       name: "ICodeTrust",
       address: string,

@@ -4,7 +4,7 @@ pragma solidity >=0.8.0 <0.9.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "./interfaces/IContractRegistry.sol";
-import "./external/ICodeTrust.sol";
+import "./external/interfaces/ICodeTrust.sol";
 
 /**
  * @title Contract Registry
@@ -67,7 +67,7 @@ contract ContractRegistry is IContractRegistry, Ownable {
     }
     // or direct call or trusted undirect call
     require(
-      admin == _msgSender() || codeTrust.isTrusted(_msgSender(), admin, 0),
+      admin == _msgSender() || codeTrust.isTrustedCode(_msgSender(), admin, 0),
       "Call from untrusted address"
     );
     _register(name, proxy, logic, version, logicCodeHash, admin);
@@ -88,7 +88,7 @@ contract ContractRegistry is IContractRegistry, Ownable {
     }
     // or direct call or trusted undirect call
     require(
-      admin == _msgSender() || codeTrust.isTrusted(_msgSender(), admin, 0),
+      admin == _msgSender() || codeTrust.isTrustedCode(_msgSender(), admin, 0),
       "Call from untrusted address"
     );
     _update(name, proxy, logic, newAdmin, version, logicCodeHash, admin);
