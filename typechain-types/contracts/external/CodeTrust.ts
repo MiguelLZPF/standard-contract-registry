@@ -25,17 +25,17 @@ import type {
 
 export interface CodeTrustInterface extends utils.Interface {
   functions: {
-    "isTrusted(address,address,uint256)": FunctionFragment;
+    "isTrustedCode(address,address,uint256)": FunctionFragment;
     "trustCodeAt(address,uint256)": FunctionFragment;
     "untrustCodeAt(address)": FunctionFragment;
   };
 
   getFunction(
-    nameOrSignatureOrTopic: "isTrusted" | "trustCodeAt" | "untrustCodeAt"
+    nameOrSignatureOrTopic: "isTrustedCode" | "trustCodeAt" | "untrustCodeAt"
   ): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "isTrusted",
+    functionFragment: "isTrustedCode",
     values: [
       PromiseOrValue<string>,
       PromiseOrValue<string>,
@@ -51,7 +51,10 @@ export interface CodeTrustInterface extends utils.Interface {
     values: [PromiseOrValue<string>]
   ): string;
 
-  decodeFunctionResult(functionFragment: "isTrusted", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "isTrustedCode",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "trustCodeAt",
     data: BytesLike
@@ -91,7 +94,7 @@ export interface CodeTrust extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    isTrusted(
+    isTrustedCode(
       trustedContract: PromiseOrValue<string>,
       by: PromiseOrValue<string>,
       extTimestamp: PromiseOrValue<BigNumberish>,
@@ -110,7 +113,7 @@ export interface CodeTrust extends BaseContract {
     ): Promise<ContractTransaction>;
   };
 
-  isTrusted(
+  isTrustedCode(
     trustedContract: PromiseOrValue<string>,
     by: PromiseOrValue<string>,
     extTimestamp: PromiseOrValue<BigNumberish>,
@@ -129,7 +132,7 @@ export interface CodeTrust extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    isTrusted(
+    isTrustedCode(
       trustedContract: PromiseOrValue<string>,
       by: PromiseOrValue<string>,
       extTimestamp: PromiseOrValue<BigNumberish>,
@@ -151,7 +154,7 @@ export interface CodeTrust extends BaseContract {
   filters: {};
 
   estimateGas: {
-    isTrusted(
+    isTrustedCode(
       trustedContract: PromiseOrValue<string>,
       by: PromiseOrValue<string>,
       extTimestamp: PromiseOrValue<BigNumberish>,
@@ -171,7 +174,7 @@ export interface CodeTrust extends BaseContract {
   };
 
   populateTransaction: {
-    isTrusted(
+    isTrustedCode(
       trustedContract: PromiseOrValue<string>,
       by: PromiseOrValue<string>,
       extTimestamp: PromiseOrValue<BigNumberish>,

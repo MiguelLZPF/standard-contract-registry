@@ -8,7 +8,7 @@ import "./interfaces/ICodeTrust.sol";
  * @author Miguel Gomez Carpena
  * @dev https://github.com/MiguelLZPF/decentralized-trust
  */
-contract CodeTrust {
+contract CodeTrust is ICodeTrust {
   //     [truster -->       contract] --> expiration
   mapping(address => mapping(address => uint256)) private trustedCodeExp;
 
@@ -35,7 +35,7 @@ contract CodeTrust {
     trustedCodeExp[msg.sender][trustedCode] = block.timestamp;
   }
 
-  function isTrusted(
+  function isTrustedCode(
     address trustedContract,
     address by,
     uint256 extTimestamp

@@ -4,5 +4,4 @@
 import type * as interfaces from "./interfaces";
 export type { interfaces };
 export type { CodeTrust } from "./CodeTrust";
-export type { ICodeTrust } from "./ICodeTrust";
 export type { ProxyAdmin } from "./ProxyAdmin";

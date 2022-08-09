@@ -3,5 +3,4 @@
 /* eslint-disable */
 export * as interfaces from "./interfaces";
 export { CodeTrust__factory } from "./CodeTrust__factory";
-export { ICodeTrust__factory } from "./ICodeTrust__factory";
 export { ProxyAdmin__factory } from "./ProxyAdmin__factory";

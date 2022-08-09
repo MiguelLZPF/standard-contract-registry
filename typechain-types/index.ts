@@ -42,8 +42,8 @@ export type { ExampleStorage } from "./contracts/Example_Storage.sol/ExampleStor
 export { ExampleStorage__factory } from "./factories/contracts/Example_Storage.sol/ExampleStorage__factory";
 export type { CodeTrust } from "./contracts/external/CodeTrust";
 export { CodeTrust__factory } from "./factories/contracts/external/CodeTrust__factory";
-export type { ICodeTrust } from "./contracts/external/ICodeTrust";
-export { ICodeTrust__factory } from "./factories/contracts/external/ICodeTrust__factory";
+export type { ICodeTrust } from "./contracts/external/interfaces/ICodeTrust";
+export { ICodeTrust__factory } from "./factories/contracts/external/interfaces/ICodeTrust__factory";
 export type { IContractDeployer } from "./contracts/interfaces/IContractDeployer";
 export { IContractDeployer__factory } from "./factories/contracts/interfaces/IContractDeployer__factory";
 export type { IContractRegistry } from "./contracts/interfaces/IContractRegistry";
