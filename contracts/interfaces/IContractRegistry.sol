@@ -1,18 +1,39 @@
-//SPDX-License-Identifier: Unlicense
+// SPDX-License-Identifier: Unlicense
 pragma solidity >=0.8.0 <0.9.0;
 
-// represents a contract record or a deployment of a contract in blockchain
+/**
+ * @title Contract Record
+ * @notice It represents a contract record or a deployment of a contract in blockchain
+ * @param name unique identifier for the ContractRecord. Bytes32 that should represent a 32 character string
+ * @param proxy the adress of the proxy | storage contract. If it isn't a upgradeable deployment, it is equal to logic
+ * @param logic the address of the logic | implementation contract
+ * @param admin the address of the admin acount. Refers to any entity that is can have any set of ContractRecords
+ * @param version the version of the ContractRecord. Range is [0, 9999] and should be represented externally as 103 -> "01.03" for example.
+ *                Usually if version comes > 9999, it is set as 'latest'
+ * @param logicCodeHash the hash of the deployed bytecode, not the complete bytecode. It should be used to check the deployed code for trust/safety concerns
+ * @param timestamp the timestamp of the ContractRecord registeration for each version
+ */
 struct ContractRecord {
-  bytes32 id;    // identifies the contract by its sha3(name)
-  address proxy; // use as ID too
+  bytes32 name;
+  address proxy;
   address logic;
   address admin;
-  bytes32 name; // must be unique
-  uint16 version; // limited to use 9999 as version = v99.99
-  uint16 index; // index in array (limit of 65536 per admin)
-  bytes32 logicCodeHash; // OPT def: 0x00...00
-  uint256 rat; // Registered AT
-  uint256 uat; // Updated AT
+  uint16 version;
+  bytes32 logicCodeHash;
+  uint256 timestamp;
+}
+
+/**
+ * @title Metadata
+ * @notice Other information about the contract record storage needed to retrieve the ContractRecords
+ * @param latestVersion mapping that stores the latest version for a given ContractRecord
+ * @param previousName mapping that stores the previous name for a given ContractRecord
+ * @param latestRecord latest ContractRecord that has been registered
+ */
+struct Metadata {
+  mapping(bytes32 => uint16) latestVersion;
+  mapping(bytes32 => bytes32) previousName;
+  bytes32 latestRecord;
 }
 
 /**
@@ -22,97 +43,88 @@ struct ContractRecord {
  */
 interface IContractRegistry {
   // EVENTS
-  // should be emitted when a contract record is registered
-  event Registered(
+  // should be emitted when a contract record is registered or updated
+  event NewRecord(
+    bytes32 indexed name,
     address indexed proxy,
-    bytes32 name,
+    address logic,
     uint16 indexed version,
-    bytes32 indexed logicCodeHash
-  );
-  // should be emitted when a contract record is updated
-  event Updated(
-    address indexed proxy,
-    bytes32 name,
-    uint16 indexed version,
-    bytes32 indexed logicCodeHash
+    bytes32 logicCodeHash
   );
   // should be emitted when a contract record changes it's registered admin
-  event AdminChanged(address indexed oldAdmin, address indexed newAdmin, bytes32 name);
+  event AdminChanged(bytes32 name, address indexed oldAdmin, address indexed newAdmin);
 
   // =========
   // FUNCTIONS
 
   /**
    * @notice Registers a contract deployed as a new ContractRecord
-   * @param proxy Address of the proxy | storage contract. If NO upgradeable deployment proxy = logic
-   * @param logic Address of the logic | implementation contract
-   * @param name Name to identify this contract
-   * @param version Initial version of the contract
-   * @param logicCodeHash The external bytecode or deployBytecode or off-chain bytecode
+   * @param name ContractRecord's name
+   * @param proxy (optional) [logic] ContractRecord's proxy
+   * @param logic ContractRecord's logic
+   * @param version (optional) [0] ContractRecord's version
+   * @param logicCodeHash ContractRecord's logic code hash
+   * @param admin (optional) [sender] Address of the admin to use
    */
   function register(
+    bytes32 name,
     address proxy,
     address logic,
-    bytes32 name,
     uint16 version,
-    bytes32 logicCodeHash
+    bytes32 logicCodeHash,
+    address admin
   ) external;
 
   /**
    * @notice Updates the ContractRecord of a contract deployment. Used only when it is upgradeable
-   * @param proxy Address of the proxy | storage contract. Identifies the contract if no actualName
-   * @param logic Address of the logic | implementation contract
-   * @param actualName (optional) [0x0000000000] Name to identify this contract
-   * @param version initial version of the contract
-   * @param logicCodeHash the external bytecode or deployBytecode or off-chain bytecode
+   * @param name ContractRecord's name
+   * @param proxy (optional) [logic] ContractRecord's proxy
+   * @param logic ContractRecord's logic
+   * @param newAdmin (optional) [0x00..00] Change the registered admin
+   * @param version (optional) [actual + 1] ContractRecord's version
+   * @param logicCodeHash ContractRecord's logic code hash
+   * @param admin (optional) [sender] Address of the admin to use
    */
   function update(
+    bytes32 name,
     address proxy,
     address logic,
-    bytes32 actualName,
+    address newAdmin,
     uint16 version,
-    bytes32 logicCodeHash
+    bytes32 logicCodeHash,
+    address admin
   ) external;
 
   /**
    * @notice Changes the registered admin/owner of a Contract Record
-   * @param proxy Address of the proxy | storage contract that identifies it
+   * @param name ContractRecord's name
    * @param newAdmin Address of the new admin
    */
-  function changeRegisteredAdmin(address proxy, address newAdmin) external;
+  function changeRegisteredAdmin(bytes32 name, address newAdmin) external;
 
   /**
-   * @notice Retreives the contract record associated to the given proxy address
-   * @param proxy Address of the proxy | storage contract. Identifies the contract
+   * @notice Retreives the contract record by a given name and admin
+   * @param name ContractRecord's name
+   * @param admin ContractRecord's admin
+   * @param version ContractRecord's version. Use version > 9999 to retreive the latest one
    * @return found Whether the contract record is found or not
    * @return record Actual contract record struct object
    */
-  function getRecord(address proxy)
-    external
-    view
-    returns (bool found, ContractRecord calldata record);
+  function getRecord(
+    bytes32 name,
+    address admin,
+    uint16 version
+  ) external view returns (bool found, ContractRecord calldata record);
 
   /**
-   * @notice Retreives the contract record associated to the given contract name
-   * @param name Name asigned on contract registration. Identifies the contract
-   * @param admin (optional) [msg.sender] Address of the admin to search name
-   * @return found Whether the contract record is found or not
-   * @return record Actual contract record struct object
+   * @notice Retreives all contract record's IDs associated to the system or owner of this ContractRegistry
+   * @return latestRecords Array of contract names list
    */
-  function getRecordByName(bytes32 name, address admin)
-    external
-    view
-    returns (bool found, ContractRecord calldata record);
+  function getSystemRecords() external view returns (bytes32[] calldata latestRecords);
 
   /**
-   * @notice Retreives the contract record list associated to the system or owner of this ContractRegistry
-   * @return contractNames Array of contract names list
+   * @notice Retreives all contract record's IDs associated to the system or owner of this ContractRegistry
+   * @return latestRecords Array of contract names list
    */
-  function getSystemRecords() external view returns (bytes32[] calldata contractNames);
-
-  /**
-   * @notice Retreives the contract record list associated to the sender of the transaction
-   * @return contractNames Array of contract names list
-   */
-  function getMyRecords() external view returns (bytes32[] calldata contractNames);
+  function getMyRecords() external view returns (bytes32[] calldata latestRecords);
 }

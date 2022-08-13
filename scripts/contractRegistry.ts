@@ -2,33 +2,38 @@ import { Provider } from "@ethersproject/abstract-provider";
 import { expect } from "chai";
 import { BigNumberish, Contract } from "ethers";
 import { isAddress } from "ethers/lib/utils";
-import { ContractRegistry__factory, IContractRegistry } from "../typechain-types";
+import {
+  ContractRegistry__factory,
+  IContractRegistry,
+  IContractRegistry__factory,
+} from "../typechain-types";
 import { ContractRecordStructOutput } from "../typechain-types/contracts/ContractRegistry";
 import { ADDR_ZERO, ghre } from "./utils";
 
 export interface IExpectedRecord {
   found?: boolean;
-  proxy?: string; // use as ID too
+  name?: string;
+  proxy?: string;
   logic?: string;
   admin?: string;
-  name?: string; // must be unique OPT DEF: 0x00...00
   version?: BigNumberish;
   logicCodeHash?: string; // OPT def: 0x00...00
-  rat?: number; // Registered AT
-  uat?: number; // Updated AT
+  timestamp?: number;
 }
 
 /**
  * Helper test function to check record of a VP
  * @param contractRegistry VPRegistry SC address
- * @param recordContract VP hash that identifies the VP
+ * @param recordName VP hash that identifies the VP
  * @param expected expected parameters to compare with
  * @param provider (optional) provider to use
  */
 export const checkRecord = async (
   contractRegistry: string | IContractRegistry,
-  recordContract: string,
+  recordName: string,
+  recordAdmin: string,
   expected: IExpectedRecord,
+  version?: number,
   provider?: Provider
 ) => {
   // if no provider as parameter, use the hardhat one
@@ -36,11 +41,7 @@ export const checkRecord = async (
   // if is an address create contract
   contractRegistry =
     typeof contractRegistry == "string"
-      ? (new Contract(
-          contractRegistry,
-          ContractRegistry__factory.abi,
-          provider
-        ) as IContractRegistry)
+      ? IContractRegistry__factory.connect(contractRegistry, provider)
       : contractRegistry;
 
   // Get record by name or proxy address
@@ -48,11 +49,8 @@ export const checkRecord = async (
     found: boolean;
     record: ContractRecordStructOutput;
   };
-  if (isAddress(recordContract)) {
-    result = await contractRegistry.getRecord(recordContract);
-  } else {
-    result = await contractRegistry.getRecordByName(recordContract, ADDR_ZERO);
-  }
+
+  result = await contractRegistry.getRecord(recordName, recordAdmin, version || 10000);
 
   expected.found ? expect(result.found).to.equal(expected.found) : undefined;
   expect(result.record.proxy.length).to.equal(20 * 2 + 2);
@@ -69,8 +67,7 @@ export const checkRecord = async (
   expected.logicCodeHash
     ? expect(result.record.logicCodeHash).to.equal(expected.logicCodeHash)
     : undefined;
-  expected.rat ? expect(result.record.rat).to.equal(expected.rat) : undefined;
-  expected.uat ? expect(result.record.uat).to.equal(expected.uat) : undefined;
+  expected.timestamp ? expect(result.record.timestamp).to.equal(expected.timestamp) : undefined;
 };
 
 export const versionNumToDot = async (versionNum: number) => {

@@ -28,15 +28,13 @@ import type {
 } from "../common";
 
 export type ContractRecordStruct = {
+  name: PromiseOrValue<BytesLike>;
   proxy: PromiseOrValue<string>;
   logic: PromiseOrValue<string>;
   admin: PromiseOrValue<string>;
-  name: PromiseOrValue<BytesLike>;
   version: PromiseOrValue<BigNumberish>;
-  index: PromiseOrValue<BigNumberish>;
   logicCodeHash: PromiseOrValue<BytesLike>;
-  rat: PromiseOrValue<BigNumberish>;
-  uat: PromiseOrValue<BigNumberish>;
+  timestamp: PromiseOrValue<BigNumberish>;
 };
 
 export type ContractRecordStructOutput = [
@@ -45,34 +43,29 @@ export type ContractRecordStructOutput = [
   string,
   string,
   number,
-  number,
   string,
-  BigNumber,
   BigNumber
 ] & {
+  name: string;
   proxy: string;
   logic: string;
   admin: string;
-  name: string;
   version: number;
-  index: number;
   logicCodeHash: string;
-  rat: BigNumber;
-  uat: BigNumber;
+  timestamp: BigNumber;
 };
 
 export interface ContractRegistryInterface extends utils.Interface {
   functions: {
-    "changeRegisteredAdmin(address,address)": FunctionFragment;
+    "changeRegisteredAdmin(bytes32,address)": FunctionFragment;
     "getMyRecords()": FunctionFragment;
-    "getRecord(address)": FunctionFragment;
-    "getRecordByName(bytes32,address)": FunctionFragment;
+    "getRecord(bytes32,address,uint16)": FunctionFragment;
     "getSystemRecords()": FunctionFragment;
     "owner()": FunctionFragment;
-    "register(address,address,bytes32,uint16,bytes32)": FunctionFragment;
+    "register(bytes32,address,address,uint16,bytes32,address)": FunctionFragment;
     "renounceOwnership()": FunctionFragment;
     "transferOwnership(address)": FunctionFragment;
-    "update(address,address,bytes32,uint16,bytes32)": FunctionFragment;
+    "update(bytes32,address,address,address,uint16,bytes32,address)": FunctionFragment;
   };
 
   getFunction(
@@ -80,7 +73,6 @@ export interface ContractRegistryInterface extends utils.Interface {
       | "changeRegisteredAdmin"
       | "getMyRecords"
       | "getRecord"
-      | "getRecordByName"
       | "getSystemRecords"
       | "owner"
       | "register"
@@ -91,7 +83,7 @@ export interface ContractRegistryInterface extends utils.Interface {
 
   encodeFunctionData(
     functionFragment: "changeRegisteredAdmin",
-    values: [PromiseOrValue<string>, PromiseOrValue<string>]
+    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "getMyRecords",
@@ -99,11 +91,11 @@ export interface ContractRegistryInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "getRecord",
-    values: [PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getRecordByName",
-    values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
+    values: [
+      PromiseOrValue<BytesLike>,
+      PromiseOrValue<string>,
+      PromiseOrValue<BigNumberish>
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "getSystemRecords",
@@ -113,11 +105,12 @@ export interface ContractRegistryInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "register",
     values: [
-      PromiseOrValue<string>,
-      PromiseOrValue<string>,
       PromiseOrValue<BytesLike>,
+      PromiseOrValue<string>,
+      PromiseOrValue<string>,
       PromiseOrValue<BigNumberish>,
-      PromiseOrValue<BytesLike>
+      PromiseOrValue<BytesLike>,
+      PromiseOrValue<string>
     ]
   ): string;
   encodeFunctionData(
@@ -131,11 +124,13 @@ export interface ContractRegistryInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "update",
     values: [
-      PromiseOrValue<string>,
-      PromiseOrValue<string>,
       PromiseOrValue<BytesLike>,
+      PromiseOrValue<string>,
+      PromiseOrValue<string>,
+      PromiseOrValue<string>,
       PromiseOrValue<BigNumberish>,
-      PromiseOrValue<BytesLike>
+      PromiseOrValue<BytesLike>,
+      PromiseOrValue<string>
     ]
   ): string;
 
@@ -148,10 +143,6 @@ export interface ContractRegistryInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getRecord", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "getRecordByName",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "getSystemRecords",
     data: BytesLike
@@ -169,22 +160,20 @@ export interface ContractRegistryInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "update", data: BytesLike): Result;
 
   events: {
-    "AdminChanged(address,address,bytes32)": EventFragment;
+    "AdminChanged(bytes32,address,address)": EventFragment;
+    "NewRecord(bytes32,address,address,uint16,bytes32)": EventFragment;
     "OwnershipTransferred(address,address)": EventFragment;
-    "Registered(address,bytes32,uint16,bytes32)": EventFragment;
-    "Updated(address,bytes32,uint16,bytes32)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "AdminChanged"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "NewRecord"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "Registered"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "Updated"): EventFragment;
 }
 
 export interface AdminChangedEventObject {
+  name: string;
   oldAdmin: string;
   newAdmin: string;
-  name: string;
 }
 export type AdminChangedEvent = TypedEvent<
   [string, string, string],
@@ -192,6 +181,20 @@ export type AdminChangedEvent = TypedEvent<
 >;
 
 export type AdminChangedEventFilter = TypedEventFilter<AdminChangedEvent>;
+
+export interface NewRecordEventObject {
+  name: string;
+  proxy: string;
+  logic: string;
+  version: number;
+  logicCodeHash: string;
+}
+export type NewRecordEvent = TypedEvent<
+  [string, string, string, number, string],
+  NewRecordEventObject
+>;
+
+export type NewRecordEventFilter = TypedEventFilter<NewRecordEvent>;
 
 export interface OwnershipTransferredEventObject {
   previousOwner: string;
@@ -204,32 +207,6 @@ export type OwnershipTransferredEvent = TypedEvent<
 
 export type OwnershipTransferredEventFilter =
   TypedEventFilter<OwnershipTransferredEvent>;
-
-export interface RegisteredEventObject {
-  proxy: string;
-  name: string;
-  version: number;
-  logicCodeHash: string;
-}
-export type RegisteredEvent = TypedEvent<
-  [string, string, number, string],
-  RegisteredEventObject
->;
-
-export type RegisteredEventFilter = TypedEventFilter<RegisteredEvent>;
-
-export interface UpdatedEventObject {
-  proxy: string;
-  name: string;
-  version: number;
-  logicCodeHash: string;
-}
-export type UpdatedEvent = TypedEvent<
-  [string, string, number, string],
-  UpdatedEventObject
->;
-
-export type UpdatedEventFilter = TypedEventFilter<UpdatedEvent>;
 
 export interface ContractRegistry extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -259,28 +236,19 @@ export interface ContractRegistry extends BaseContract {
 
   functions: {
     changeRegisteredAdmin(
-      proxy: PromiseOrValue<string>,
+      name: PromiseOrValue<BytesLike>,
       newAdmin: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
     getMyRecords(
       overrides?: CallOverrides
-    ): Promise<[string[]] & { contractNames: string[] }>;
+    ): Promise<[string[]] & { latestRecords: string[] }>;
 
     getRecord(
-      proxy: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<
-      [boolean, ContractRecordStructOutput] & {
-        found: boolean;
-        record: ContractRecordStructOutput;
-      }
-    >;
-
-    getRecordByName(
       name: PromiseOrValue<BytesLike>,
       admin: PromiseOrValue<string>,
+      version: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<
       [boolean, ContractRecordStructOutput] & {
@@ -291,16 +259,17 @@ export interface ContractRegistry extends BaseContract {
 
     getSystemRecords(
       overrides?: CallOverrides
-    ): Promise<[string[]] & { contractNames: string[] }>;
+    ): Promise<[string[]] & { latestRecords: string[] }>;
 
     owner(overrides?: CallOverrides): Promise<[string]>;
 
     register(
+      name: PromiseOrValue<BytesLike>,
       proxy: PromiseOrValue<string>,
       logic: PromiseOrValue<string>,
-      name: PromiseOrValue<BytesLike>,
       version: PromiseOrValue<BigNumberish>,
       logicCodeHash: PromiseOrValue<BytesLike>,
+      admin: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -314,17 +283,19 @@ export interface ContractRegistry extends BaseContract {
     ): Promise<ContractTransaction>;
 
     update(
+      name: PromiseOrValue<BytesLike>,
       proxy: PromiseOrValue<string>,
       logic: PromiseOrValue<string>,
-      actualName: PromiseOrValue<BytesLike>,
+      newAdmin: PromiseOrValue<string>,
       version: PromiseOrValue<BigNumberish>,
       logicCodeHash: PromiseOrValue<BytesLike>,
+      admin: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
   };
 
   changeRegisteredAdmin(
-    proxy: PromiseOrValue<string>,
+    name: PromiseOrValue<BytesLike>,
     newAdmin: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
@@ -332,18 +303,9 @@ export interface ContractRegistry extends BaseContract {
   getMyRecords(overrides?: CallOverrides): Promise<string[]>;
 
   getRecord(
-    proxy: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<
-    [boolean, ContractRecordStructOutput] & {
-      found: boolean;
-      record: ContractRecordStructOutput;
-    }
-  >;
-
-  getRecordByName(
     name: PromiseOrValue<BytesLike>,
     admin: PromiseOrValue<string>,
+    version: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<
     [boolean, ContractRecordStructOutput] & {
@@ -357,11 +319,12 @@ export interface ContractRegistry extends BaseContract {
   owner(overrides?: CallOverrides): Promise<string>;
 
   register(
+    name: PromiseOrValue<BytesLike>,
     proxy: PromiseOrValue<string>,
     logic: PromiseOrValue<string>,
-    name: PromiseOrValue<BytesLike>,
     version: PromiseOrValue<BigNumberish>,
     logicCodeHash: PromiseOrValue<BytesLike>,
+    admin: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
@@ -375,17 +338,19 @@ export interface ContractRegistry extends BaseContract {
   ): Promise<ContractTransaction>;
 
   update(
+    name: PromiseOrValue<BytesLike>,
     proxy: PromiseOrValue<string>,
     logic: PromiseOrValue<string>,
-    actualName: PromiseOrValue<BytesLike>,
+    newAdmin: PromiseOrValue<string>,
     version: PromiseOrValue<BigNumberish>,
     logicCodeHash: PromiseOrValue<BytesLike>,
+    admin: PromiseOrValue<string>,
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
     changeRegisteredAdmin(
-      proxy: PromiseOrValue<string>,
+      name: PromiseOrValue<BytesLike>,
       newAdmin: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
@@ -393,18 +358,9 @@ export interface ContractRegistry extends BaseContract {
     getMyRecords(overrides?: CallOverrides): Promise<string[]>;
 
     getRecord(
-      proxy: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<
-      [boolean, ContractRecordStructOutput] & {
-        found: boolean;
-        record: ContractRecordStructOutput;
-      }
-    >;
-
-    getRecordByName(
       name: PromiseOrValue<BytesLike>,
       admin: PromiseOrValue<string>,
+      version: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<
       [boolean, ContractRecordStructOutput] & {
@@ -418,11 +374,12 @@ export interface ContractRegistry extends BaseContract {
     owner(overrides?: CallOverrides): Promise<string>;
 
     register(
+      name: PromiseOrValue<BytesLike>,
       proxy: PromiseOrValue<string>,
       logic: PromiseOrValue<string>,
-      name: PromiseOrValue<BytesLike>,
       version: PromiseOrValue<BigNumberish>,
       logicCodeHash: PromiseOrValue<BytesLike>,
+      admin: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -434,26 +391,43 @@ export interface ContractRegistry extends BaseContract {
     ): Promise<void>;
 
     update(
+      name: PromiseOrValue<BytesLike>,
       proxy: PromiseOrValue<string>,
       logic: PromiseOrValue<string>,
-      actualName: PromiseOrValue<BytesLike>,
+      newAdmin: PromiseOrValue<string>,
       version: PromiseOrValue<BigNumberish>,
       logicCodeHash: PromiseOrValue<BytesLike>,
+      admin: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<void>;
   };
 
   filters: {
-    "AdminChanged(address,address,bytes32)"(
+    "AdminChanged(bytes32,address,address)"(
+      name?: null,
       oldAdmin?: PromiseOrValue<string> | null,
-      newAdmin?: PromiseOrValue<string> | null,
-      name?: null
+      newAdmin?: PromiseOrValue<string> | null
     ): AdminChangedEventFilter;
     AdminChanged(
+      name?: null,
       oldAdmin?: PromiseOrValue<string> | null,
-      newAdmin?: PromiseOrValue<string> | null,
-      name?: null
+      newAdmin?: PromiseOrValue<string> | null
     ): AdminChangedEventFilter;
+
+    "NewRecord(bytes32,address,address,uint16,bytes32)"(
+      name?: PromiseOrValue<BytesLike> | null,
+      proxy?: PromiseOrValue<string> | null,
+      logic?: null,
+      version?: PromiseOrValue<BigNumberish> | null,
+      logicCodeHash?: null
+    ): NewRecordEventFilter;
+    NewRecord(
+      name?: PromiseOrValue<BytesLike> | null,
+      proxy?: PromiseOrValue<string> | null,
+      logic?: null,
+      version?: PromiseOrValue<BigNumberish> | null,
+      logicCodeHash?: null
+    ): NewRecordEventFilter;
 
     "OwnershipTransferred(address,address)"(
       previousOwner?: PromiseOrValue<string> | null,
@@ -463,37 +437,11 @@ export interface ContractRegistry extends BaseContract {
       previousOwner?: PromiseOrValue<string> | null,
       newOwner?: PromiseOrValue<string> | null
     ): OwnershipTransferredEventFilter;
-
-    "Registered(address,bytes32,uint16,bytes32)"(
-      proxy?: PromiseOrValue<string> | null,
-      name?: null,
-      version?: PromiseOrValue<BigNumberish> | null,
-      logicCodeHash?: PromiseOrValue<BytesLike> | null
-    ): RegisteredEventFilter;
-    Registered(
-      proxy?: PromiseOrValue<string> | null,
-      name?: null,
-      version?: PromiseOrValue<BigNumberish> | null,
-      logicCodeHash?: PromiseOrValue<BytesLike> | null
-    ): RegisteredEventFilter;
-
-    "Updated(address,bytes32,uint16,bytes32)"(
-      proxy?: PromiseOrValue<string> | null,
-      name?: null,
-      version?: PromiseOrValue<BigNumberish> | null,
-      logicCodeHash?: PromiseOrValue<BytesLike> | null
-    ): UpdatedEventFilter;
-    Updated(
-      proxy?: PromiseOrValue<string> | null,
-      name?: null,
-      version?: PromiseOrValue<BigNumberish> | null,
-      logicCodeHash?: PromiseOrValue<BytesLike> | null
-    ): UpdatedEventFilter;
   };
 
   estimateGas: {
     changeRegisteredAdmin(
-      proxy: PromiseOrValue<string>,
+      name: PromiseOrValue<BytesLike>,
       newAdmin: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
@@ -501,13 +449,9 @@ export interface ContractRegistry extends BaseContract {
     getMyRecords(overrides?: CallOverrides): Promise<BigNumber>;
 
     getRecord(
-      proxy: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    getRecordByName(
       name: PromiseOrValue<BytesLike>,
       admin: PromiseOrValue<string>,
+      version: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -516,11 +460,12 @@ export interface ContractRegistry extends BaseContract {
     owner(overrides?: CallOverrides): Promise<BigNumber>;
 
     register(
+      name: PromiseOrValue<BytesLike>,
       proxy: PromiseOrValue<string>,
       logic: PromiseOrValue<string>,
-      name: PromiseOrValue<BytesLike>,
       version: PromiseOrValue<BigNumberish>,
       logicCodeHash: PromiseOrValue<BytesLike>,
+      admin: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
@@ -534,18 +479,20 @@ export interface ContractRegistry extends BaseContract {
     ): Promise<BigNumber>;
 
     update(
+      name: PromiseOrValue<BytesLike>,
       proxy: PromiseOrValue<string>,
       logic: PromiseOrValue<string>,
-      actualName: PromiseOrValue<BytesLike>,
+      newAdmin: PromiseOrValue<string>,
       version: PromiseOrValue<BigNumberish>,
       logicCodeHash: PromiseOrValue<BytesLike>,
+      admin: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
     changeRegisteredAdmin(
-      proxy: PromiseOrValue<string>,
+      name: PromiseOrValue<BytesLike>,
       newAdmin: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
@@ -553,13 +500,9 @@ export interface ContractRegistry extends BaseContract {
     getMyRecords(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     getRecord(
-      proxy: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    getRecordByName(
       name: PromiseOrValue<BytesLike>,
       admin: PromiseOrValue<string>,
+      version: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -568,11 +511,12 @@ export interface ContractRegistry extends BaseContract {
     owner(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     register(
+      name: PromiseOrValue<BytesLike>,
       proxy: PromiseOrValue<string>,
       logic: PromiseOrValue<string>,
-      name: PromiseOrValue<BytesLike>,
       version: PromiseOrValue<BigNumberish>,
       logicCodeHash: PromiseOrValue<BytesLike>,
+      admin: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -586,11 +530,13 @@ export interface ContractRegistry extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     update(
+      name: PromiseOrValue<BytesLike>,
       proxy: PromiseOrValue<string>,
       logic: PromiseOrValue<string>,
-      actualName: PromiseOrValue<BytesLike>,
+      newAdmin: PromiseOrValue<string>,
       version: PromiseOrValue<BigNumberish>,
       logicCodeHash: PromiseOrValue<BytesLike>,
+      admin: PromiseOrValue<string>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
   };

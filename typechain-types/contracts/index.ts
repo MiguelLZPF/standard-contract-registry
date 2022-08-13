@@ -15,3 +15,4 @@ import type * as interfaces from "./interfaces";
 export type { interfaces };
 export type { ContractDeployer } from "./ContractDeployer";
 export type { ContractRegistry } from "./ContractRegistry";
+export type { UpgradeableDeployer } from "./UpgradeableDeployer";

@@ -9,7 +9,6 @@ import type {
   CallOverrides,
   ContractTransaction,
   Overrides,
-  PayableOverrides,
   PopulatedTransaction,
   Signer,
   utils,
@@ -30,36 +29,11 @@ import type {
 
 export interface ContractDeployerInterface extends utils.Interface {
   functions: {
-    "changeProxyAdmin(address,address)": FunctionFragment;
     "deployContract(address,bytes,bytes,bytes32,bytes32,uint16)": FunctionFragment;
-    "getProxyAdmin(address)": FunctionFragment;
-    "getProxyImplementation(address)": FunctionFragment;
-    "owner()": FunctionFragment;
-    "renounceOwnership()": FunctionFragment;
-    "transferOwnership(address)": FunctionFragment;
-    "upgrade(address,address)": FunctionFragment;
-    "upgradeAndCall(address,address,bytes)": FunctionFragment;
-    "upgradeContract(address,address,bytes,bytes,bytes32,uint16)": FunctionFragment;
   };
 
-  getFunction(
-    nameOrSignatureOrTopic:
-      | "changeProxyAdmin"
-      | "deployContract"
-      | "getProxyAdmin"
-      | "getProxyImplementation"
-      | "owner"
-      | "renounceOwnership"
-      | "transferOwnership"
-      | "upgrade"
-      | "upgradeAndCall"
-      | "upgradeContract"
-  ): FunctionFragment;
+  getFunction(nameOrSignatureOrTopic: "deployContract"): FunctionFragment;
 
-  encodeFunctionData(
-    functionFragment: "changeProxyAdmin",
-    values: [PromiseOrValue<string>, PromiseOrValue<string>]
-  ): string;
   encodeFunctionData(
     functionFragment: "deployContract",
     values: [
@@ -71,97 +45,23 @@ export interface ContractDeployerInterface extends utils.Interface {
       PromiseOrValue<BigNumberish>
     ]
   ): string;
-  encodeFunctionData(
-    functionFragment: "getProxyAdmin",
-    values: [PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getProxyImplementation",
-    values: [PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "renounceOwnership",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "transferOwnership",
-    values: [PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "upgrade",
-    values: [PromiseOrValue<string>, PromiseOrValue<string>]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "upgradeAndCall",
-    values: [
-      PromiseOrValue<string>,
-      PromiseOrValue<string>,
-      PromiseOrValue<BytesLike>
-    ]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "upgradeContract",
-    values: [
-      PromiseOrValue<string>,
-      PromiseOrValue<string>,
-      PromiseOrValue<BytesLike>,
-      PromiseOrValue<BytesLike>,
-      PromiseOrValue<BytesLike>,
-      PromiseOrValue<BigNumberish>
-    ]
-  ): string;
 
   decodeFunctionResult(
-    functionFragment: "changeProxyAdmin",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "deployContract",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getProxyAdmin",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getProxyImplementation",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "renounceOwnership",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "transferOwnership",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "upgrade", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "upgradeAndCall",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "upgradeContract",
     data: BytesLike
   ): Result;
 
   events: {
-    "ContractDeployed(address,address,bytes32,uint16,bytes32)": EventFragment;
-    "ContractUpgraded(address,address,uint16,bytes32)": EventFragment;
-    "OwnershipTransferred(address,address)": EventFragment;
+    "ContractDeployed(address,bytes32,address,uint16,bytes32)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "ContractDeployed"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "ContractUpgraded"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
 }
 
 export interface ContractDeployedEventObject {
   registry: string;
-  proxy: string;
   name: string;
+  proxyOrLogic: string;
   version: number;
   logicCodeHash: string;
 }
@@ -172,32 +72,6 @@ export type ContractDeployedEvent = TypedEvent<
 
 export type ContractDeployedEventFilter =
   TypedEventFilter<ContractDeployedEvent>;
-
-export interface ContractUpgradedEventObject {
-  registry: string;
-  proxy: string;
-  version: number;
-  logicCodeHash: string;
-}
-export type ContractUpgradedEvent = TypedEvent<
-  [string, string, number, string],
-  ContractUpgradedEventObject
->;
-
-export type ContractUpgradedEventFilter =
-  TypedEventFilter<ContractUpgradedEvent>;
-
-export interface OwnershipTransferredEventObject {
-  previousOwner: string;
-  newOwner: string;
-}
-export type OwnershipTransferredEvent = TypedEvent<
-  [string, string],
-  OwnershipTransferredEventObject
->;
-
-export type OwnershipTransferredEventFilter =
-  TypedEventFilter<OwnershipTransferredEvent>;
 
 export interface ContractDeployer extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -226,12 +100,6 @@ export interface ContractDeployer extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    changeProxyAdmin(
-      proxy: PromiseOrValue<string>,
-      newAdmin: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
     deployContract(
       registry: PromiseOrValue<string>,
       bytecode: PromiseOrValue<BytesLike>,
@@ -241,57 +109,7 @@ export interface ContractDeployer extends BaseContract {
       version: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
-
-    getProxyAdmin(
-      proxy: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<[string]>;
-
-    getProxyImplementation(
-      proxy: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<[string]>;
-
-    owner(overrides?: CallOverrides): Promise<[string]>;
-
-    renounceOwnership(
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    transferOwnership(
-      newOwner: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    upgrade(
-      proxy: PromiseOrValue<string>,
-      implementation: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    upgradeAndCall(
-      proxy: PromiseOrValue<string>,
-      implementation: PromiseOrValue<string>,
-      data: PromiseOrValue<BytesLike>,
-      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
-
-    upgradeContract(
-      registry: PromiseOrValue<string>,
-      proxy: PromiseOrValue<string>,
-      bytecode: PromiseOrValue<BytesLike>,
-      data: PromiseOrValue<BytesLike>,
-      salt: PromiseOrValue<BytesLike>,
-      version: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<ContractTransaction>;
   };
-
-  changeProxyAdmin(
-    proxy: PromiseOrValue<string>,
-    newAdmin: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
 
   deployContract(
     registry: PromiseOrValue<string>,
@@ -303,268 +121,54 @@ export interface ContractDeployer extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
-  getProxyAdmin(
-    proxy: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<string>;
-
-  getProxyImplementation(
-    proxy: PromiseOrValue<string>,
-    overrides?: CallOverrides
-  ): Promise<string>;
-
-  owner(overrides?: CallOverrides): Promise<string>;
-
-  renounceOwnership(
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  transferOwnership(
-    newOwner: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  upgrade(
-    proxy: PromiseOrValue<string>,
-    implementation: PromiseOrValue<string>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  upgradeAndCall(
-    proxy: PromiseOrValue<string>,
-    implementation: PromiseOrValue<string>,
-    data: PromiseOrValue<BytesLike>,
-    overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
-  upgradeContract(
-    registry: PromiseOrValue<string>,
-    proxy: PromiseOrValue<string>,
-    bytecode: PromiseOrValue<BytesLike>,
-    data: PromiseOrValue<BytesLike>,
-    salt: PromiseOrValue<BytesLike>,
-    version: PromiseOrValue<BigNumberish>,
-    overrides?: Overrides & { from?: PromiseOrValue<string> }
-  ): Promise<ContractTransaction>;
-
   callStatic: {
-    changeProxyAdmin(
-      proxy: PromiseOrValue<string>,
-      newAdmin: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     deployContract(
       registry: PromiseOrValue<string>,
       bytecode: PromiseOrValue<BytesLike>,
       data: PromiseOrValue<BytesLike>,
       salt: PromiseOrValue<BytesLike>,
       name: PromiseOrValue<BytesLike>,
-      version: PromiseOrValue<BigNumberish>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    getProxyAdmin(
-      proxy: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<string>;
-
-    getProxyImplementation(
-      proxy: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<string>;
-
-    owner(overrides?: CallOverrides): Promise<string>;
-
-    renounceOwnership(overrides?: CallOverrides): Promise<void>;
-
-    transferOwnership(
-      newOwner: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    upgrade(
-      proxy: PromiseOrValue<string>,
-      implementation: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    upgradeAndCall(
-      proxy: PromiseOrValue<string>,
-      implementation: PromiseOrValue<string>,
-      data: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    upgradeContract(
-      registry: PromiseOrValue<string>,
-      proxy: PromiseOrValue<string>,
-      bytecode: PromiseOrValue<BytesLike>,
-      data: PromiseOrValue<BytesLike>,
-      salt: PromiseOrValue<BytesLike>,
       version: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
     ): Promise<void>;
   };
 
   filters: {
-    "ContractDeployed(address,address,bytes32,uint16,bytes32)"(
+    "ContractDeployed(address,bytes32,address,uint16,bytes32)"(
       registry?: null,
-      proxy?: PromiseOrValue<string> | null,
-      name?: null,
+      name?: PromiseOrValue<BytesLike> | null,
+      proxyOrLogic?: PromiseOrValue<string> | null,
       version?: PromiseOrValue<BigNumberish> | null,
       logicCodeHash?: null
     ): ContractDeployedEventFilter;
     ContractDeployed(
       registry?: null,
-      proxy?: PromiseOrValue<string> | null,
-      name?: null,
+      name?: PromiseOrValue<BytesLike> | null,
+      proxyOrLogic?: PromiseOrValue<string> | null,
       version?: PromiseOrValue<BigNumberish> | null,
       logicCodeHash?: null
     ): ContractDeployedEventFilter;
-
-    "ContractUpgraded(address,address,uint16,bytes32)"(
-      registry?: PromiseOrValue<string> | null,
-      proxy?: PromiseOrValue<string> | null,
-      version?: PromiseOrValue<BigNumberish> | null,
-      logicCodeHash?: null
-    ): ContractUpgradedEventFilter;
-    ContractUpgraded(
-      registry?: PromiseOrValue<string> | null,
-      proxy?: PromiseOrValue<string> | null,
-      version?: PromiseOrValue<BigNumberish> | null,
-      logicCodeHash?: null
-    ): ContractUpgradedEventFilter;
-
-    "OwnershipTransferred(address,address)"(
-      previousOwner?: PromiseOrValue<string> | null,
-      newOwner?: PromiseOrValue<string> | null
-    ): OwnershipTransferredEventFilter;
-    OwnershipTransferred(
-      previousOwner?: PromiseOrValue<string> | null,
-      newOwner?: PromiseOrValue<string> | null
-    ): OwnershipTransferredEventFilter;
   };
 
   estimateGas: {
-    changeProxyAdmin(
-      proxy: PromiseOrValue<string>,
-      newAdmin: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
     deployContract(
       registry: PromiseOrValue<string>,
       bytecode: PromiseOrValue<BytesLike>,
       data: PromiseOrValue<BytesLike>,
       salt: PromiseOrValue<BytesLike>,
       name: PromiseOrValue<BytesLike>,
-      version: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    getProxyAdmin(
-      proxy: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    getProxyImplementation(
-      proxy: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    owner(overrides?: CallOverrides): Promise<BigNumber>;
-
-    renounceOwnership(
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    transferOwnership(
-      newOwner: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    upgrade(
-      proxy: PromiseOrValue<string>,
-      implementation: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    upgradeAndCall(
-      proxy: PromiseOrValue<string>,
-      implementation: PromiseOrValue<string>,
-      data: PromiseOrValue<BytesLike>,
-      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
-    ): Promise<BigNumber>;
-
-    upgradeContract(
-      registry: PromiseOrValue<string>,
-      proxy: PromiseOrValue<string>,
-      bytecode: PromiseOrValue<BytesLike>,
-      data: PromiseOrValue<BytesLike>,
-      salt: PromiseOrValue<BytesLike>,
       version: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
-    changeProxyAdmin(
-      proxy: PromiseOrValue<string>,
-      newAdmin: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
     deployContract(
       registry: PromiseOrValue<string>,
       bytecode: PromiseOrValue<BytesLike>,
       data: PromiseOrValue<BytesLike>,
       salt: PromiseOrValue<BytesLike>,
       name: PromiseOrValue<BytesLike>,
-      version: PromiseOrValue<BigNumberish>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    getProxyAdmin(
-      proxy: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    getProxyImplementation(
-      proxy: PromiseOrValue<string>,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    owner(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    renounceOwnership(
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    transferOwnership(
-      newOwner: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    upgrade(
-      proxy: PromiseOrValue<string>,
-      implementation: PromiseOrValue<string>,
-      overrides?: Overrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    upgradeAndCall(
-      proxy: PromiseOrValue<string>,
-      implementation: PromiseOrValue<string>,
-      data: PromiseOrValue<BytesLike>,
-      overrides?: PayableOverrides & { from?: PromiseOrValue<string> }
-    ): Promise<PopulatedTransaction>;
-
-    upgradeContract(
-      registry: PromiseOrValue<string>,
-      proxy: PromiseOrValue<string>,
-      bytecode: PromiseOrValue<BytesLike>,
-      data: PromiseOrValue<BytesLike>,
-      salt: PromiseOrValue<BytesLike>,
       version: PromiseOrValue<BigNumberish>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;

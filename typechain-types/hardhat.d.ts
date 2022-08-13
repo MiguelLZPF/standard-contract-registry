@@ -85,6 +85,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ExampleStorage__factory>;
     getContractFactory(
+      name: "CodeTrust",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.CodeTrust__factory>;
+    getContractFactory(
+      name: "ICodeTrust",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ICodeTrust__factory>;
+    getContractFactory(
       name: "ProxyAdmin",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ProxyAdmin__factory>;
@@ -96,6 +104,14 @@ declare module "hardhat/types/runtime" {
       name: "IContractRegistry",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IContractRegistry__factory>;
+    getContractFactory(
+      name: "IUpgradeableDeployer",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IUpgradeableDeployer__factory>;
+    getContractFactory(
+      name: "UpgradeableDeployer",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.UpgradeableDeployer__factory>;
 
     getContractAt(
       name: "OwnableUpgradeable",
@@ -188,6 +204,16 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.ExampleStorage>;
     getContractAt(
+      name: "CodeTrust",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.CodeTrust>;
+    getContractAt(
+      name: "ICodeTrust",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ICodeTrust>;
+    getContractAt(
       name: "ProxyAdmin",
       address: string,
       signer?: ethers.Signer
@@ -202,6 +228,16 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.IContractRegistry>;
+    getContractAt(
+      name: "IUpgradeableDeployer",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IUpgradeableDeployer>;
+    getContractAt(
+      name: "UpgradeableDeployer",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.UpgradeableDeployer>;
 
     // default types
     getContractFactory(
