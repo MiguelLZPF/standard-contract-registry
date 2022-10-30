@@ -4,7 +4,7 @@ Before run anything, make sure you run `npm install` (and if you have any proble
 
 This project aims to provide an easy to use On-Blockchain Standard Contract Registry that can be used to manage multiple groups of smart contracts and its addresses and versions. The main contract is the ContractRegistry, where the actual records are stored. This contract is supported by an optional ContractDeployer, that makes it easier the deployment of generic regular contracts and another UpgradeableDeployer that acts as a ProxyAdmin but it also manages the deployment of upgradeable contracts that deploys and upgrade them, all On-Chain using Create2.
 
-Medium high level details: https://miguel-lzpf.medium.com/on-chain-standard-contract-registry-325d99f0cb9c
+Medium high level details: <https://miguel-lzpf.medium.com/on-chain-standard-contract-registry-325d99f0cb9c>
 
 The structure follows a Hardhat project environment using ethers, waffle and chai. It also use typescript and generates smart contract types using typechain. The --network parameter refers to the network to be used defined in the [hardhat config file](./hardhat.config.ts).
 

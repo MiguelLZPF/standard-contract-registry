@@ -7,7 +7,7 @@ import type { Provider } from "@ethersproject/providers";
 import type {
   ICodeTrust,
   ICodeTrustInterface,
-} from "../../../../contracts/external/interfaces/ICodeTrust";
+} from "../../../../decentralized-code-trust/contracts/interfaces/ICodeTrust";
 
 const _abi = [
   {
@@ -48,7 +48,7 @@ const _abi = [
       },
       {
         internalType: "uint256",
-        name: "expiration",
+        name: "duration",
         type: "uint256",
       },
     ],

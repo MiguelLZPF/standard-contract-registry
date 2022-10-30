@@ -4,7 +4,7 @@ pragma solidity >=0.8.0 <0.9.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "./interfaces/IContractRegistry.sol";
-import "./external/interfaces/ICodeTrust.sol";
+import "decentralized-code-trust/contracts/interfaces/ICodeTrust.sol";
 
 /**
  * @title Contract Registry

@@ -13,18 +13,6 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
-      name: "OwnableUpgradeable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.OwnableUpgradeable__factory>;
-    getContractFactory(
-      name: "Initializable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Initializable__factory>;
-    getContractFactory(
-      name: "ContextUpgradeable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ContextUpgradeable__factory>;
-    getContractFactory(
       name: "Ownable",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Ownable__factory>;
@@ -85,14 +73,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ExampleStorage__factory>;
     getContractFactory(
-      name: "CodeTrust",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.CodeTrust__factory>;
-    getContractFactory(
-      name: "ICodeTrust",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ICodeTrust__factory>;
-    getContractFactory(
       name: "ProxyAdmin",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ProxyAdmin__factory>;
@@ -112,22 +92,11 @@ declare module "hardhat/types/runtime" {
       name: "UpgradeableDeployer",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.UpgradeableDeployer__factory>;
+    getContractFactory(
+      name: "ICodeTrust",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ICodeTrust__factory>;
 
-    getContractAt(
-      name: "OwnableUpgradeable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.OwnableUpgradeable>;
-    getContractAt(
-      name: "Initializable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Initializable>;
-    getContractAt(
-      name: "ContextUpgradeable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ContextUpgradeable>;
     getContractAt(
       name: "Ownable",
       address: string,
@@ -204,16 +173,6 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.ExampleStorage>;
     getContractAt(
-      name: "CodeTrust",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.CodeTrust>;
-    getContractAt(
-      name: "ICodeTrust",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ICodeTrust>;
-    getContractAt(
       name: "ProxyAdmin",
       address: string,
       signer?: ethers.Signer
@@ -238,6 +197,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.UpgradeableDeployer>;
+    getContractAt(
+      name: "ICodeTrust",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ICodeTrust>;
 
     // default types
     getContractFactory(

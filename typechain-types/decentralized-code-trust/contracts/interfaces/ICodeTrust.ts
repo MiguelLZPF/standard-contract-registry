@@ -21,9 +21,9 @@ import type {
   TypedListener,
   OnEvent,
   PromiseOrValue,
-} from "../../common";
+} from "../../../common";
 
-export interface CodeTrustInterface extends utils.Interface {
+export interface ICodeTrustInterface extends utils.Interface {
   functions: {
     "isTrustedCode(address,address,uint256)": FunctionFragment;
     "trustCodeAt(address,uint256)": FunctionFragment;
@@ -67,12 +67,12 @@ export interface CodeTrustInterface extends utils.Interface {
   events: {};
 }
 
-export interface CodeTrust extends BaseContract {
+export interface ICodeTrust extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
 
-  interface: CodeTrustInterface;
+  interface: ICodeTrustInterface;
 
   queryFilter<TEvent extends TypedEvent>(
     event: TypedEventFilter<TEvent>,
@@ -95,7 +95,7 @@ export interface CodeTrust extends BaseContract {
 
   functions: {
     isTrustedCode(
-      trustedContract: PromiseOrValue<string>,
+      trustedCode: PromiseOrValue<string>,
       by: PromiseOrValue<string>,
       extTimestamp: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -114,7 +114,7 @@ export interface CodeTrust extends BaseContract {
   };
 
   isTrustedCode(
-    trustedContract: PromiseOrValue<string>,
+    trustedCode: PromiseOrValue<string>,
     by: PromiseOrValue<string>,
     extTimestamp: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
@@ -133,7 +133,7 @@ export interface CodeTrust extends BaseContract {
 
   callStatic: {
     isTrustedCode(
-      trustedContract: PromiseOrValue<string>,
+      trustedCode: PromiseOrValue<string>,
       by: PromiseOrValue<string>,
       extTimestamp: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -155,7 +155,7 @@ export interface CodeTrust extends BaseContract {
 
   estimateGas: {
     isTrustedCode(
-      trustedContract: PromiseOrValue<string>,
+      trustedCode: PromiseOrValue<string>,
       by: PromiseOrValue<string>,
       extTimestamp: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
@@ -175,7 +175,7 @@ export interface CodeTrust extends BaseContract {
 
   populateTransaction: {
     isTrustedCode(
-      trustedContract: PromiseOrValue<string>,
+      trustedCode: PromiseOrValue<string>,
       by: PromiseOrValue<string>,
       extTimestamp: PromiseOrValue<BigNumberish>,
       overrides?: CallOverrides
