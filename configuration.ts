@@ -1,76 +1,85 @@
-const KEYSTORE = {
+type Hardfork = "london" | "berlin" | "byzantium";
+
+/**
+ * The KEYSTORE environment constant group is used to agrupate the constants related to the Encryped JSON wallets
+ * @param root the root directory
+ * @param default default constants if no specific ones defined
+ * @param default.password to be used to symetric encryption & decryption of the Encryped JSON wallets
+ * @param default.batchSize the number of Encryped JSON wallets to generate in batch mode
+ * @param test constants related to tests
+ * @param test.userNumber number of users to create in tests
+ */
+export const KEYSTORE = {
   root: "keystore",
   default: {
-    password: "PaSs_W0Rd",
-    batchSize: 2,
-  },
-  test: {
-    userNumber: 5,
+    accountNumber: 10, // Ganache server default account number
+    balance: "0x2710", // infinite balance
+    password: "PaSs_W0Rd", // should use another password for real things
+    privateKey: "0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d",
+    mnemonic: {
+      phrase: "myth like bonus scare over problem client lizard pioneer submit female collect",
+      path: "m/44'/60'/0'/00",
+      locale: "en",
+    },
+    batchSize: 2, // hardhat task default wallets to add to the keystore in batch mode
   },
 };
 
-const NETWORK = {
+/**
+ * The BLOCKCHAIN environment constant group is used to agrupate the constants related to the blockchain network
+ */
+export const BLOCKCHAIN = {
   default: {
-    solVersion: "0.8.14",
-    evm: "berlin",
-    gasLimit: 80000000,
+    solVersion: "0.8.13",
+    evm: "london" as Hardfork,
+    gasLimit: 800000,
     gasPrice: 0,
+    maxFeePerGas: 900000000,
+    maxPriorityFeePerGas: 100,
+    initialBaseFeePerGas: 7,
   },
   hardhat: {
-    chainId: 69,
-    url: "http://127.0.0.1:8545",
+    chainId: 31337,
+    hostname: "127.0.0.1",
+    port: 8545,
   },
   ganache: {
     chainId: 1337,
-    url: "http://127.0.0.1:8545",
+    hostname: "127.0.0.1",
+    port: 8545,
+    dbPath: ".ganache-db",
   },
 };
 
+// default gas options to be used when sending Tx. It aims to zero gas price networks
 export const GAS_OPT = {
   max: {
-    gasLimit: NETWORK.default.gasLimit,
-    gasPrice: NETWORK.default.gasPrice,
+    gasLimit: BLOCKCHAIN.default.gasLimit,
+    // gasPrice: BLOCKCHAIN.default.gasPrice,
+    maxPriorityFeePerGas: BLOCKCHAIN.default.maxPriorityFeePerGas,
+    maxFeePerGas: BLOCKCHAIN.default.maxFeePerGas,
   },
 };
 
-const DEPLOY = {
+export const DEPLOY = {
   deploymentsPath: "deployments.json",
   proxyAdmin: {
     name: "ProxyAdmin",
-    address: "0x8aC971aBdF7F3465E4786aA2E0d3A07f40316c9D",
+    address: "", // "0xa978565B473049af66e883C471a725B3C1405f6b", // this address is used by default if no other is provided
   },
 };
 
-const CONTRACT = {
-  codeTrust: {
-    name: "CodeTrust",
+export const CONTRACT = [
+  {
+    name: "Lock",
+    deployTxHash: "0x00",
   },
-  contractRegistry: {
-    name: "ContractRegistry",
+  {
+    name: "LockUpgr",
+    deployTxHash: "0x00",
   },
-  contractDeployer: {
-    name: "ContractDeployer",
-  },
-  upgradeableDeployer: {
-    name: "UpgradeableDeployer",
-  },
-  exampleBallot: {
-    name: "ExampleBallot",
-  },
-  exampleOwner: {
-    name: "ExampleOwner",
-  },
-  exampleOwnerV2: {
-    name: "ExampleOwnerV2",
-  },
-  exampleStorage: {
-    name: "ExampleStorage",
-  },
-};
+];
 
-export const ENV = {
-  KEYSTORE,
-  NETWORK,
-  DEPLOY,
-  CONTRACT,
+export const TEST = {
+  accountNumber: 10,
 };

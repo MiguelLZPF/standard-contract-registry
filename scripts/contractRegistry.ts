@@ -1,14 +1,9 @@
 import { Provider } from "@ethersproject/abstract-provider";
 import { expect } from "chai";
-import { BigNumberish, Contract } from "ethers";
-import { isAddress } from "ethers/lib/utils";
-import {
-  ContractRegistry__factory,
-  IContractRegistry,
-  IContractRegistry__factory,
-} from "../typechain-types";
+import { BigNumberish } from "ethers";
+import { IContractRegistry, IContractRegistry__factory } from "../typechain-types";
 import { ContractRecordStructOutput } from "../typechain-types/contracts/ContractRegistry";
-import { ADDR_ZERO, ghre } from "./utils";
+import { ghre } from "./utils";
 
 export interface IExpectedRecord {
   found?: boolean;

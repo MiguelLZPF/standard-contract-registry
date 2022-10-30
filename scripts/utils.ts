@@ -1,34 +1,25 @@
 import * as fs from "async-file";
 import util from "util";
-import { concat } from "@ethersproject/bytes";
 import { constants } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { BlockTag, JsonRpcProvider } from "@ethersproject/providers";
 import { INetwork, networks } from "../models/Deploy";
-import { ENV } from "../configuration";
 
 // Global HRE, Ethers Provider and network parameters
 export let ghre: HardhatRuntimeEnvironment;
+export let gEthers: HardhatRuntimeEnvironment["ethers"];
 export let gProvider: JsonRpcProvider;
 export let gCurrentNetwork: INetwork;
 
 export const ADDR_ZERO = constants.AddressZero;
-// gas default options
-export const GAS_OPT = {
-  gasLimit: ENV.NETWORK.default.gasLimit,
-  gasPrice: ENV.NETWORK.default.gasPrice,
-};
 
 /**
  * Set Global HRE
  * @param hre HardhatRuntimeEnvironment to be set as global
  */
-export const setGHRE = (hre: HardhatRuntimeEnvironment) => {
+export const setGlobalHRE = async (hre: HardhatRuntimeEnvironment) => {
   ghre = hre;
-};
-
-export const initHRE = async (hre: HardhatRuntimeEnvironment) => {
-  ghre = hre;
+  gEthers = hre.ethers;
   gProvider = hre.ethers.provider;
   // get the current network parameters based on chainId
   gCurrentNetwork = networks.get(
