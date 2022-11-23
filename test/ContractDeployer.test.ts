@@ -4,7 +4,6 @@ import { Wallet } from "@ethersproject/wallet";
 import { expect } from "chai";
 import { step } from "mocha-steps";
 import {
-  CodeTrust__factory,
   ContractDeployer,
   ContractDeployer__factory,
   ContractRegistry,
@@ -14,10 +13,10 @@ import {
   ICodeTrust,
 } from "../typechain-types";
 import { keccak256 } from "@ethersproject/keccak256";
-import { delay, GAS_OPT, getTimeStamp, initHRE, stringToStringHexFixed } from "../scripts/utils";
+import { delay, getTimeStamp, stringToStringHexFixed } from "../scripts/utils";
 import { INetwork } from "../models/Deploy";
 import { JsonRpcProvider } from "@ethersproject/providers";
-import { ENV } from "../configuration";
+import { } from "../configuration";
 import {
   IExpectedRecord,
   checkRecord,
