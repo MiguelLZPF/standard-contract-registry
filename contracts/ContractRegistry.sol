@@ -4,7 +4,7 @@ pragma solidity >=0.8.0 <0.9.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "./interfaces/IContractRegistry.sol";
-import "decentralized-code-trust/contracts/interfaces/ICodeTrust.sol";
+import "decentralized-code-trust/contracts/Trustable.sol";
 
 /**
  * @title Contract Registry
@@ -12,7 +12,7 @@ import "decentralized-code-trust/contracts/interfaces/ICodeTrust.sol";
  * @dev This Smart Contract is in charge of keep a registry of deployed SC
  *      for a given system. To check function documentation, please see IContractRegistry documentation
  */
-contract ContractRegistry is IContractRegistry, Ownable {
+contract ContractRegistry is IContractRegistry, Ownable, Trustable {
   // ======
   // CONSTANTS
   uint16 private constant MAX_VERSION = 9999;
@@ -20,8 +20,6 @@ contract ContractRegistry is IContractRegistry, Ownable {
 
   // ======
   // VARIABLES
-  // Code trust contract needed for this contrac to trust another ones (normally the ContractDeployer or the UpgradeableDeployer)
-  ICodeTrust private codeTrust;
   // Relation to be able to find Record by Name related to an admin
   // --   ((admin,           name)              version) --> proxy
   mapping(address => mapping(bytes32 => mapping(uint16 => ContractRecord))) private contractRecords;
@@ -46,7 +44,7 @@ contract ContractRegistry is IContractRegistry, Ownable {
     bytes32 logicCodeHash
   ) {
     // set contract to ask for trusted code
-    codeTrust = initCodeTrust;
+    _codeTrust = initCodeTrust;
     if (name == bytes32(0)) {
       name = REGISTRY_NAME;
     }
@@ -67,7 +65,7 @@ contract ContractRegistry is IContractRegistry, Ownable {
     }
     // or direct call or trusted undirect call
     require(
-      admin == _msgSender() || codeTrust.isTrustedCode(_msgSender(), admin, 0),
+      admin == _msgSender() || _codeTrust.isTrustedCode(_msgSender(), admin, 0),
       "Call from untrusted address"
     );
     _register(name, proxy, logic, version, logicCodeHash, admin);
@@ -88,7 +86,7 @@ contract ContractRegistry is IContractRegistry, Ownable {
     }
     // or direct call or trusted undirect call
     require(
-      admin == _msgSender() || codeTrust.isTrustedCode(_msgSender(), admin, 0),
+      admin == _msgSender() || _codeTrust.isTrustedCode(_msgSender(), admin, 0),
       "Call from untrusted address"
     );
     _update(name, proxy, logic, newAdmin, version, logicCodeHash, admin);

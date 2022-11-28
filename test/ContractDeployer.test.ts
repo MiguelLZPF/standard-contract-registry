@@ -1,4 +1,4 @@
-import * as hre from "hardhat";
+import * as HRE from "hardhat";
 import { isAddress } from "@ethersproject/address";
 import { Wallet } from "@ethersproject/wallet";
 import { expect } from "chai";
@@ -10,13 +10,15 @@ import {
   ContractRegistry__factory,
   ExampleOwner,
   ExampleOwner__factory,
+  // CodeTrust__factory,
   ICodeTrust,
 } from "../typechain-types";
+import { CodeTrust__factory } from "decentralized-code-trust/typechain-types/factories/contracts/CodeTrust__factory";
 import { keccak256 } from "@ethersproject/keccak256";
-import { delay, getTimeStamp, stringToStringHexFixed } from "../scripts/utils";
+import { delay, getTimeStamp, setGlobalHRE } from "../scripts/utils";
 import { INetwork } from "../models/Deploy";
-import { JsonRpcProvider } from "@ethersproject/providers";
-import { } from "../configuration";
+import { Block, JsonRpcProvider } from "@ethersproject/providers";
+import { CONTRACT, GAS_OPT, KEYSTORE, TEST } from "../configuration";
 import {
   IExpectedRecord,
   checkRecord,
@@ -24,14 +26,17 @@ import {
   versionNumToDot,
 } from "../scripts/contractRegistry";
 import { ContractReceipt } from "ethers";
-import { deployedBytecode as CODETRUST_DEP_CODE } from "../artifacts/contracts/external/CodeTrust.sol/CodeTrust.json";
+import { deployedBytecode as CODETRUST_DEP_CODE } from "decentralized-code-trust/artifacts/contracts/CodeTrust.sol/CodeTrust.json";
 import { deployedBytecode as REGISTRY_DEP_CODE } from "../artifacts/contracts/ContractRegistry.sol/ContractRegistry.json";
 import { deployedBytecode as CONTRACT_DEPLOYER_DEP_CODE } from "../artifacts/contracts/ContractDeployer.sol/ContractDeployer.json";
 import { deployedBytecode as OWNER_DEP_CODE } from "../artifacts/contracts/Example_Owner.sol/ExampleOwner.json";
+import { generateWalletBatch } from "../scripts/wallets";
+import { Mnemonic, formatBytes32String } from "ethers/lib/utils";
 
 // Generic Constants
-let PROVIDER: JsonRpcProvider;
-let NETWORK: INetwork;
+let ethers = HRE.ethers;
+let provider: JsonRpcProvider;
+let network: INetwork;
 
 // Specific Constants
 // -- revert Messages
@@ -60,36 +65,35 @@ let contractDeployer: ContractDeployer;
 let exampleOwner: ExampleOwner;
 // -- utils
 let lastReceipt: ContractReceipt | undefined;
+let lastBlock: Block;
 let lastRegisteredAt: number, lastUpdatedAt: number;
 before("Initialize test environment and const/var", async () => {
   // set global HardhatRuntimeEnvironment to use the same provider in scripts
-  ({ gProvider: PROVIDER, gCurrentNetwork: NETWORK } = await initHRE(hre));
-  // Create random test wallets
-  try {
-    admin = Wallet.createRandom().connect(PROVIDER);
-    for (let u = 0; u < ENV.KEYSTORE.test.userNumber; u++) {
-      users[u] = Wallet.createRandom().connect(PROVIDER);
-      console.log(`
-        User N=${u}: 
-          - Address: ${users[u].address},
-          - Public Key: ${users[u].publicKey},
-          - Private Key: ${users[u].privateKey}
-      `);
-    }
-    // Contract names as hexadecimal string with fixed length
-    CODETRUST_NAME_HEXSTRING = await stringToStringHexFixed(ENV.CONTRACT.codeTrust.name, 32);
-    CONTRACT_REGISTRY_NAME_HEXSTRING = await stringToStringHexFixed(
-      ENV.CONTRACT.contractRegistry.name,
-      32
-    );
-    CONTRACT_DEPLOYER_NAME_HEXSTRING = await stringToStringHexFixed(
-      ENV.CONTRACT.contractDeployer.name,
-      32
-    );
-    EXAMPLE_OWNER_NAME_HEXSTRING = await stringToStringHexFixed(ENV.CONTRACT.exampleOwner.name, 32);
-  } catch (error) {
-    throw new Error(`Error creating or reading wallets from keystore. ${error}`);
+  ({ gProvider: provider, gCurrentNetwork: network } = await setGlobalHRE(HRE));
+  lastBlock = await provider.getBlock("latest");
+  console.log(`Connected to network: ${network.name} (latest block: ${lastBlock.number})`);
+  // Generate TEST.accountNumber wallets
+  const accounts = await generateWalletBatch(
+    undefined,
+    undefined,
+    TEST.accountNumber,
+    undefined,
+    {
+      phrase: KEYSTORE.default.mnemonic.phrase,
+      path: KEYSTORE.default.mnemonic.basePath,
+      locale: KEYSTORE.default.mnemonic.locale,
+    } as Mnemonic,
+    true
+  );
+  admin = accounts[0];
+  for (let u = 1; u < TEST.accountNumber; u++) {
+    users[u - 1] = accounts[u];
   }
+  // Contract names as hexadecimal string with fixed length
+  CODETRUST_NAME_HEXSTRING = formatBytes32String(CONTRACT.codeTrust.name);
+  CONTRACT_REGISTRY_NAME_HEXSTRING = formatBytes32String(CONTRACT.contractRegistry.name);
+  CONTRACT_DEPLOYER_NAME_HEXSTRING = formatBytes32String(CONTRACT.contractDeployer.name);
+  EXAMPLE_OWNER_NAME_HEXSTRING = formatBytes32String(CONTRACT.exampleOwner.name);
 });
 
 describe("Contract Deployer - Deploy and Initialization", async function () {
@@ -99,7 +103,7 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
   });
 
   step("Should deploy CodeTrust", async () => {
-    codeTrust = await (await new CodeTrust__factory(admin).deploy(GAS_OPT)).deployed();
+    codeTrust = await (await new CodeTrust__factory(admin).deploy(GAS_OPT.max)).deployed();
     lastReceipt = await codeTrust.deployTransaction.wait();
     expect(isAddress(codeTrust.address)).to.be.true;
     console.log("CodeTrust contract deployed at: ", codeTrust.address);
@@ -115,7 +119,7 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
         NAME_HEXSTRING_ZERO,
         0,
         keccak256(REGISTRY_DEP_CODE),
-        GAS_OPT
+        GAS_OPT.max
       )
     ).deployed();
     lastReceipt = await contractRegistry.deployTransaction.wait();
@@ -148,7 +152,7 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
         await versionDotToNum("01.00"),
         keccak256(CODETRUST_DEP_CODE),
         admin.address,
-        GAS_OPT
+        GAS_OPT.max
       )
     ).wait();
     expect(lastReceipt).not.to.be.undefined;
@@ -177,7 +181,7 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
 
   step("Should deploy ContractDeployer", async () => {
     contractDeployer = await (
-      await new ContractDeployer__factory(admin).deploy(contractRegistry.address, GAS_OPT)
+      await new ContractDeployer__factory(admin).deploy(contractRegistry.address, GAS_OPT.max)
     ).deployed();
     expect(isAddress(contractDeployer.address)).to.be.true;
     console.log("Contract Deployer deployed at: ", contractDeployer.address);
@@ -198,7 +202,7 @@ describe("Contract Deployer - Deploy and Initialization", async function () {
         await versionDotToNum("01.00"),
         keccak256(CONTRACT_DEPLOYER_DEP_CODE),
         admin.address,
-        GAS_OPT
+        GAS_OPT.max
       )
     ).wait();
     expect(lastReceipt).not.to.be.undefined;
@@ -316,7 +320,7 @@ describe("Contract Deployer", async () => {
         new Uint8Array(32),
         EXAMPLE_OWNER_NAME_HEXSTRING,
         0,
-        GAS_OPT
+        GAS_OPT.max
       )
     ).to.be.revertedWith(REVERT_MESSAGES.create2.paramBytecode0);
   });
@@ -329,12 +333,12 @@ describe("Contract Deployer", async () => {
         new Uint8Array(32),
         EXAMPLE_OWNER_NAME_HEXSTRING,
         0,
-        GAS_OPT
+        GAS_OPT.max
       )
     ).to.be.revertedWith(REVERT_MESSAGES.create2.paramBytecodeNoContract);
   });
   step("Should deploy Example Owner contract", async () => {
-    await (await codeTrust.trustCodeAt(contractDeployer.address, 360, GAS_OPT)).wait();
+    await (await codeTrust.trustCodeAt(contractDeployer.address, 360, GAS_OPT.max)).wait();
     const receipt = await (
       await contractDeployer.deployContract(
         contractRegistry.address,
@@ -343,7 +347,7 @@ describe("Contract Deployer", async () => {
         new Uint8Array(32),
         EXAMPLE_OWNER_NAME_HEXSTRING,
         await versionDotToNum("01.00"),
-        GAS_OPT
+        GAS_OPT.max
       )
     ).wait();
     expect(receipt).not.to.be.undefined;
@@ -381,7 +385,7 @@ describe("Contract Deployer", async () => {
         new Uint8Array(32),
         EXAMPLE_OWNER_NAME_HEXSTRING,
         await versionDotToNum("01.05"),
-        GAS_OPT
+        GAS_OPT.max
       )
     ).wait();
     expect(receipt).not.to.be.undefined;
