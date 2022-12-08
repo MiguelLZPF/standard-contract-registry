@@ -33,7 +33,7 @@ export const BLOCKCHAIN = {
   default: {
     solVersion: "0.8.13",
     evm: "london" as Hardfork,
-    gasLimit: 800000,
+    gasLimit: 10000000, // 10 M
     gasPrice: 0,
     maxFeePerGas: 900000000,
     maxPriorityFeePerGas: 100,
@@ -85,7 +85,13 @@ export const CONTRACT = {
   },
   exampleOwner: {
     name: "ExampleOwner",
-  }
+  },
+  exampleBallot: {
+    name: "ExampleBallot",
+  },
+  exampleStorage: {
+    name: "ExampleStorage",
+  },
 };
 
 export const TEST = {

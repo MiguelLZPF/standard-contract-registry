@@ -25,7 +25,7 @@ export const setGlobalHRE = async (hre: HardhatRuntimeEnvironment) => {
   gCurrentNetwork = networks.get(
     gProvider.network ? gProvider.network.chainId : (await gProvider.getNetwork()).chainId
   )!;
-  return { gProvider, gCurrentNetwork };
+  return { gEthers, gProvider, gCurrentNetwork };
 };
 
 /**
@@ -64,13 +64,13 @@ export const getTimeStamp = async (block?: BlockTag, provider?: JsonRpcProvider)
   }
 };
 
-export const stringToStringHexFixed = async (inputString: string, length: number) => {
-  const nameBuffer = Buffer.from(inputString, "utf-8");
-  const nameInBytes = nameBuffer.toString("hex");
-  return `0x${nameInBytes}${Buffer.from(new Uint8Array(length - nameBuffer.byteLength)).toString(
-    "hex"
-  )}`;
-};
+// export const stringToStringHexFixed = async (inputString: string, length: number) => {
+//   const nameBuffer = Buffer.from(inputString, "utf-8");
+//   const nameInBytes = nameBuffer.toString("hex");
+//   return `0x${nameInBytes}${Buffer.from(new Uint8Array(length - nameBuffer.byteLength)).toString(
+//     "hex"
+//   )}`;
+// };
 
 /**
  * Logs a Typescript object

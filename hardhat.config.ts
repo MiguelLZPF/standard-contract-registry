@@ -191,7 +191,12 @@ task("get-mnemonic", "Recover mnemonic phrase from an encrypted wallet")
 // DEPLOYMENTS
 task("deploy", "Deploy smart contracts on '--network'")
   .addFlag("upgradeable", "Deploy as upgradeable")
-  .addPositionalParam("contractName", "Name of the contract to deploy", undefined, types.string)
+  .addPositionalParam(
+    "contractName",
+    "Name of the contract to deploy",
+    undefined,
+    types.string
+  )
   .addOptionalParam(
     "relativePath",
     "Path relative to KEYSTORE.root to store the wallets",
@@ -322,7 +327,7 @@ task("upgrade", "Upgrade smart contracts on '--network'")
   )
   .addFlag("noCompile", "Do not compile contracts before upgrade")
   .setAction(async (args: IUpgrade, hre) => {
-    setGlobalHRE(hre);
+    await setGlobalHRE(hre);
     if (!args.noCompile) {
       await hre.run("compile");
     }
@@ -556,6 +561,7 @@ task("quick-test", "Random quick testing function")
   )
   .setAction(async ({ args }, hre: HardhatRuntimeEnvironment) => {
     setGlobalHRE(hre);
+    console.log(hre.ethers.constants.AddressZero);
     if (args) {
       // example: npx hardhat quick-test --args '[12, "hello"]'
       console.log("RAW Args: ", args, typeof args[0], args[0], typeof args[1], args[1]);
@@ -581,6 +587,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
+        runs: 100
       },
       evmVersion: BLOCKCHAIN.default.evm,
     },
@@ -592,6 +599,7 @@ const config: HardhatUserConfig = {
       gasPrice: BLOCKCHAIN.default.gasPrice,
       hardfork: BLOCKCHAIN.default.evm,
       initialBaseFeePerGas: BLOCKCHAIN.default.initialBaseFeePerGas,
+      allowUnlimitedContractSize: false,
       accounts: {
         mnemonic: KEYSTORE.default.mnemonic.phrase,
         path: KEYSTORE.default.mnemonic.basePath,
@@ -624,9 +632,16 @@ const config: HardhatUserConfig = {
     enabled: true,
     currency: "EUR",
   },
-  // typechain: {
-  //   externalArtifacts: ["node_modules/decentralized-code-trust/contracts/CodeTrust.sol"],
-  // },
+  typechain: {
+    target: "ethers-v5",
+    externalArtifacts: [
+      "node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json",
+      "node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json",
+      "node_modules/decentralized-code-trust/artifacts/contracts/CodeTrust.sol/CodeTrust.json",
+      // "node_modules/decentralized-code-trust/artifacts/contracts/Trustable.sol/Trustable.json",
+      "node_modules/decentralized-code-trust/artifacts/contracts/interfaces/ICodeTrust.sol/ICodeTrust.json",
+    ],
+  },
 };
 
 export default config;

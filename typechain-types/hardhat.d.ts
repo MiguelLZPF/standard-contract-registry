@@ -73,10 +73,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ExampleStorage__factory>;
     getContractFactory(
-      name: "ProxyAdmin",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ProxyAdmin__factory>;
-    getContractFactory(
       name: "IContractDeployer",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IContractDeployer__factory>;
@@ -92,6 +88,22 @@ declare module "hardhat/types/runtime" {
       name: "UpgradeableDeployer",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.UpgradeableDeployer__factory>;
+    getContractFactory(
+      name: "ICodeTrust",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ICodeTrust__factory>;
+    getContractFactory(
+      name: "ProxyAdmin",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ProxyAdmin__factory>;
+    getContractFactory(
+      name: "TransparentUpgradeableProxy",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TransparentUpgradeableProxy__factory>;
+    getContractFactory(
+      name: "CodeTrust",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.CodeTrust__factory>;
     getContractFactory(
       name: "ICodeTrust",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -173,11 +185,6 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.ExampleStorage>;
     getContractAt(
-      name: "ProxyAdmin",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ProxyAdmin>;
-    getContractAt(
       name: "IContractDeployer",
       address: string,
       signer?: ethers.Signer
@@ -197,6 +204,26 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.UpgradeableDeployer>;
+    getContractAt(
+      name: "ICodeTrust",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ICodeTrust>;
+    getContractAt(
+      name: "ProxyAdmin",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ProxyAdmin>;
+    getContractAt(
+      name: "TransparentUpgradeableProxy",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TransparentUpgradeableProxy>;
+    getContractAt(
+      name: "CodeTrust",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.CodeTrust>;
     getContractAt(
       name: "ICodeTrust",
       address: string,
