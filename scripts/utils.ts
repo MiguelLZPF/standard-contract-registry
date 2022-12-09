@@ -1,40 +1,31 @@
 import * as fs from "async-file";
 import util from "util";
-import { concat } from "@ethersproject/bytes";
 import { constants } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { BlockTag, JsonRpcProvider } from "@ethersproject/providers";
 import { INetwork, networks } from "../models/Deploy";
-import { ENV } from "../configuration";
 
 // Global HRE, Ethers Provider and network parameters
 export let ghre: HardhatRuntimeEnvironment;
+export let gEthers: HardhatRuntimeEnvironment["ethers"];
 export let gProvider: JsonRpcProvider;
 export let gCurrentNetwork: INetwork;
 
 export const ADDR_ZERO = constants.AddressZero;
-// gas default options
-export const GAS_OPT = {
-  gasLimit: ENV.NETWORK.default.gasLimit,
-  gasPrice: ENV.NETWORK.default.gasPrice,
-};
 
 /**
  * Set Global HRE
  * @param hre HardhatRuntimeEnvironment to be set as global
  */
-export const setGHRE = (hre: HardhatRuntimeEnvironment) => {
+export const setGlobalHRE = async (hre: HardhatRuntimeEnvironment) => {
   ghre = hre;
-};
-
-export const initHRE = async (hre: HardhatRuntimeEnvironment) => {
-  ghre = hre;
+  gEthers = hre.ethers;
   gProvider = hre.ethers.provider;
   // get the current network parameters based on chainId
   gCurrentNetwork = networks.get(
     gProvider.network ? gProvider.network.chainId : (await gProvider.getNetwork()).chainId
   )!;
-  return { gProvider, gCurrentNetwork };
+  return { gEthers, gProvider, gCurrentNetwork };
 };
 
 /**
@@ -73,13 +64,13 @@ export const getTimeStamp = async (block?: BlockTag, provider?: JsonRpcProvider)
   }
 };
 
-export const stringToStringHexFixed = async (inputString: string, length: number) => {
-  const nameBuffer = Buffer.from(inputString, "utf-8");
-  const nameInBytes = nameBuffer.toString("hex");
-  return `0x${nameInBytes}${Buffer.from(new Uint8Array(length - nameBuffer.byteLength)).toString(
-    "hex"
-  )}`;
-};
+// export const stringToStringHexFixed = async (inputString: string, length: number) => {
+//   const nameBuffer = Buffer.from(inputString, "utf-8");
+//   const nameInBytes = nameBuffer.toString("hex");
+//   return `0x${nameInBytes}${Buffer.from(new Uint8Array(length - nameBuffer.byteLength)).toString(
+//     "hex"
+//   )}`;
+// };
 
 /**
  * Logs a Typescript object
