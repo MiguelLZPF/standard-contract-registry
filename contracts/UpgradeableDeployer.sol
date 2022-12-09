@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity >=0.8.0 <0.9.0;
 
-import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "./interfaces/IUpgradeableDeployer.sol";
 

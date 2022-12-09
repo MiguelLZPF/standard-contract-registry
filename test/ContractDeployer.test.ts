@@ -23,7 +23,6 @@ import * as CODETRUST_ARTIFACT from "node_modules/decentralized-code-trust/artif
 import * as CONTRACT_REGISTRY_ARTIFACT from "artifacts/contracts/ContractRegistry.sol/ContractRegistry.json";
 import * as CONTRACT_DEPLOYER_ARTIFACT from "artifacts/contracts/ContractDeployer.sol/ContractDeployer.json";
 import * as OWNER_ARTIFACT from "artifacts/contracts/Example_Owner.sol/ExampleOwner.json";
-
 import {
   CodeTrust__factory,
   ContractDeployer__factory,
@@ -40,7 +39,6 @@ let provider: JsonRpcProvider;
 let network: INetwork;
 
 // Specific Constants
-// -- revert Messages
 const CODETRUST_DEP_CODE = CODETRUST_ARTIFACT.deployedBytecode;
 const REGISTRY_DEP_CODE = CONTRACT_REGISTRY_ARTIFACT.deployedBytecode;
 const DEPLOYER_DEP_CODE = CONTRACT_DEPLOYER_ARTIFACT.deployedBytecode;
@@ -86,7 +84,7 @@ describe("Contract Deployer", () => {
     lastBlock = await provider.getBlock("latest");
     console.log(`Connected to network: ${network.name} (latest block: ${lastBlock.number})`);
     // Generate TEST.accountNumber wallets
-    const accounts = await generateWalletBatch(
+    accounts = await generateWalletBatch(
       undefined,
       undefined,
       TEST.accountNumber,
@@ -391,6 +389,7 @@ describe("Contract Deployer", () => {
         recordResp.record.proxy,
         users[0]
       )) as ExampleOwner;
+      lastReceipt = undefined;
     });
     step("Should check if Example Owner is registered", async () => {
       // use contract object to use user0.address in call
