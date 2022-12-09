@@ -1,18 +1,19 @@
 import * as hre from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { isAddress } from "@ethersproject/address";
-import { Wallet } from "@ethersproject/wallet";
 import { expect } from "chai";
 import { step } from "mocha-steps";
+import { isAddress } from "@ethersproject/address";
+import { Wallet } from "@ethersproject/wallet";
 import { keccak256 } from "@ethersproject/keccak256";
-import { Mnemonic } from "ethers/lib/utils";
-import { randomBytes } from "crypto";
-import { ADDR_ZERO, delay, getTimeStamp, setGlobalHRE } from "scripts/utils";
-import { INetwork } from "models/Deploy";
-import { ContractReceipt } from "ethers";
 import { formatBytes32String } from "@ethersproject/strings";
 import { JsonRpcProvider, Block } from "@ethersproject/providers";
+import { Mnemonic } from "ethers/lib/utils";
+import { ContractReceipt } from "ethers";
+import { randomBytes } from "crypto";
 import { CONTRACT, GAS_OPT, KEYSTORE, TEST } from "configuration";
+import { ADDR_ZERO, delay, getTimeStamp, setGlobalHRE } from "scripts/utils";
+import { generateWalletBatch } from "scripts/wallets";
+import { INetwork } from "models/Deploy";
 import {
   IExpectedRecord,
   checkRecord,
@@ -36,7 +37,6 @@ import {
   ICodeTrust,
   IContractRegistry,
 } from "typechain-types";
-import { generateWalletBatch } from "scripts/wallets";
 
 // Generic Constants
 let ethers: HardhatRuntimeEnvironment["ethers"];
@@ -44,13 +44,12 @@ let provider: JsonRpcProvider;
 let network: INetwork;
 
 // Specific Constants
-// -- revert Messages
 const CODETRUST_DEP_CODE = CODETRUST_ARTIFACT.deployedBytecode;
 const REGISTRY_DEP_CODE = CONTRACT_REGISTRY_ARTIFACT.deployedBytecode;
 const STORAGE_DEP_CODE = STORAGE_ARTIFACT.deployedBytecode;
 const OWNER_DEP_CODE = OWNER_ARTIFACT.deployedBytecode;
 const BALLOT_DEP_CODE = BALLOT_ARTIFACT.deployedBytecode;
-
+// -- revert Messages
 const REVERT_MESSAGES = {
   // initializable: { initialized: "Initializable: contract is already initialized" },
   register: {
@@ -76,7 +75,6 @@ let CONTRACT_REGISTRY_NAME_HEXSTRING: string;
 let EXAMPLE_BALLOT_NAME_HEXSTRING: string;
 let EXAMPLE_OWNER_NAME_HEXSTRING: string;
 let EXAMPLE_STORAGE_NAME_HEXSTRING: string;
-const ANOTHER_NAME_HEXSTRING = formatBytes32String("BAD_NAME");
 const NAME_HEXSTRING_ZERO = formatBytes32String("");
 
 // Specific Variables
@@ -84,7 +82,7 @@ const NAME_HEXSTRING_ZERO = formatBytes32String("");
 let accounts: Wallet[] = [];
 let admin: Wallet;
 let users: Wallet[] = [];
-// Factories
+// -- Factories
 let codeTrustFactory: Promise<CodeTrust__factory>;
 let contractRegistryFactory: Promise<ContractRegistry__factory>;
 let exampleBallotFactory: Promise<ExampleBallot__factory>;
