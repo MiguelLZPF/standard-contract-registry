@@ -5,9 +5,9 @@ import { step } from "mocha-steps";
 import { isAddress } from "@ethersproject/address";
 import { Wallet } from "@ethersproject/wallet";
 import { keccak256 } from "@ethersproject/keccak256";
-import { formatBytes32String } from "@ethersproject/strings";
+import { formatBytes32String, toUtf8Bytes } from "@ethersproject/strings";
 import { JsonRpcProvider, Block } from "@ethersproject/providers";
-import { Mnemonic } from "ethers/lib/utils";
+import { hexValue, Mnemonic } from "ethers/lib/utils";
 import { ContractReceipt } from "ethers";
 import { randomBytes } from "crypto";
 import { CONTRACT, GAS_OPT, KEYSTORE, TEST } from "configuration";
@@ -548,6 +548,43 @@ describe("Contract Registry", () => {
       } as IExpectedRecord);
       await checkRecord(contractRegistry, EXAMPLE_STORAGE_NAME_HEXSTRING, users[0].address, {
         found: false,
+      } as IExpectedRecord);
+    });
+    // EXTRA DATA
+    it("Should edit extraData of example contract", async () => {
+      await checkRecord(contractRegistry, EXAMPLE_STORAGE_NAME_HEXSTRING, users[1].address, {
+        found: true,
+        proxy: exampleStorage.address,
+        logic: exampleStorage.address,
+        admin: users[1].address,
+        name: EXAMPLE_STORAGE_NAME_HEXSTRING,
+        version: await versionDotToNum("01.01"),
+        logicCodeHash: keccak256(STORAGE_DEP_CODE + "000100"),
+        extraData: "0x",
+        timestamp: lastRegisteredAt,
+      } as IExpectedRecord);
+      const data = JSON.stringify({
+        id: "asdf01234",
+        network: 1234,
+      });
+      lastReceipt = await (
+        await contractRegistry
+          .connect(users[1])
+          .editExtraData(EXAMPLE_STORAGE_NAME_HEXSTRING, toUtf8Bytes(data), GAS_OPT.max)
+      ).wait();
+      expect(lastReceipt).not.to.be.undefined;
+      // update block timestamp
+      lastRegisteredAt = lastUpdatedAt = await getTimeStamp(lastReceipt.blockHash);
+      lastReceipt = undefined;
+      await checkRecord(contractRegistry, EXAMPLE_STORAGE_NAME_HEXSTRING, users[1].address, {
+        found: true,
+        proxy: exampleStorage.address,
+        logic: exampleStorage.address,
+        admin: users[1].address,
+        name: EXAMPLE_STORAGE_NAME_HEXSTRING,
+        version: await versionDotToNum("01.01"),
+        logicCodeHash: keccak256(STORAGE_DEP_CODE + "000100"),
+        extraData: hexValue(toUtf8Bytes(data)),
       } as IExpectedRecord);
     });
     // REGULAR LIST
