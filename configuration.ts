@@ -31,7 +31,7 @@ export const KEYSTORE = {
  */
 export const BLOCKCHAIN = {
   default: {
-    solVersion: "0.8.13",
+    solVersion: "0.8.17",
     evm: "london" as Hardfork,
     gasLimit: 10000000, // 10 M
     gasPrice: 0,
