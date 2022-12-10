@@ -34,6 +34,7 @@ export type ContractRecordStruct = {
   admin: PromiseOrValue<string>;
   version: PromiseOrValue<BigNumberish>;
   logicCodeHash: PromiseOrValue<BytesLike>;
+  extraData: PromiseOrValue<BytesLike>;
   timestamp: PromiseOrValue<BigNumberish>;
 };
 
@@ -44,6 +45,7 @@ export type ContractRecordStructOutput = [
   string,
   number,
   string,
+  string,
   BigNumber
 ] & {
   name: string;
@@ -52,12 +54,14 @@ export type ContractRecordStructOutput = [
   admin: string;
   version: number;
   logicCodeHash: string;
+  extraData: string;
   timestamp: BigNumber;
 };
 
 export interface IContractRegistryInterface extends utils.Interface {
   functions: {
     "changeRegisteredAdmin(bytes32,address)": FunctionFragment;
+    "editExtraData(bytes32,bytes)": FunctionFragment;
     "getMyRecords()": FunctionFragment;
     "getRecord(bytes32,address,uint16)": FunctionFragment;
     "getSystemRecords()": FunctionFragment;
@@ -68,6 +72,7 @@ export interface IContractRegistryInterface extends utils.Interface {
   getFunction(
     nameOrSignatureOrTopic:
       | "changeRegisteredAdmin"
+      | "editExtraData"
       | "getMyRecords"
       | "getRecord"
       | "getSystemRecords"
@@ -78,6 +83,10 @@ export interface IContractRegistryInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "changeRegisteredAdmin",
     values: [PromiseOrValue<BytesLike>, PromiseOrValue<string>]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "editExtraData",
+    values: [PromiseOrValue<BytesLike>, PromiseOrValue<BytesLike>]
   ): string;
   encodeFunctionData(
     functionFragment: "getMyRecords",
@@ -124,6 +133,10 @@ export interface IContractRegistryInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "editExtraData",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "getMyRecords",
     data: BytesLike
   ): Result;
@@ -137,10 +150,12 @@ export interface IContractRegistryInterface extends utils.Interface {
 
   events: {
     "AdminChanged(bytes32,address,address)": EventFragment;
+    "ExtraDataUpdated(bytes32,bytes,bytes)": EventFragment;
     "NewRecord(bytes32,address,address,uint16,bytes32)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "AdminChanged"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "ExtraDataUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "NewRecord"): EventFragment;
 }
 
@@ -155,6 +170,19 @@ export type AdminChangedEvent = TypedEvent<
 >;
 
 export type AdminChangedEventFilter = TypedEventFilter<AdminChangedEvent>;
+
+export interface ExtraDataUpdatedEventObject {
+  name: string;
+  oldExtraData: string;
+  newExtraData: string;
+}
+export type ExtraDataUpdatedEvent = TypedEvent<
+  [string, string, string],
+  ExtraDataUpdatedEventObject
+>;
+
+export type ExtraDataUpdatedEventFilter =
+  TypedEventFilter<ExtraDataUpdatedEvent>;
 
 export interface NewRecordEventObject {
   name: string;
@@ -200,6 +228,12 @@ export interface IContractRegistry extends BaseContract {
     changeRegisteredAdmin(
       name: PromiseOrValue<BytesLike>,
       newAdmin: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
+
+    editExtraData(
+      name: PromiseOrValue<BytesLike>,
+      newExtraData: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<ContractTransaction>;
 
@@ -251,6 +285,12 @@ export interface IContractRegistry extends BaseContract {
     overrides?: Overrides & { from?: PromiseOrValue<string> }
   ): Promise<ContractTransaction>;
 
+  editExtraData(
+    name: PromiseOrValue<BytesLike>,
+    newExtraData: PromiseOrValue<BytesLike>,
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
+
   getMyRecords(overrides?: CallOverrides): Promise<string[]>;
 
   getRecord(
@@ -295,6 +335,12 @@ export interface IContractRegistry extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    editExtraData(
+      name: PromiseOrValue<BytesLike>,
+      newExtraData: PromiseOrValue<BytesLike>,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     getMyRecords(overrides?: CallOverrides): Promise<string[]>;
 
     getRecord(
@@ -335,15 +381,26 @@ export interface IContractRegistry extends BaseContract {
 
   filters: {
     "AdminChanged(bytes32,address,address)"(
-      name?: null,
+      name?: PromiseOrValue<BytesLike> | null,
       oldAdmin?: PromiseOrValue<string> | null,
       newAdmin?: PromiseOrValue<string> | null
     ): AdminChangedEventFilter;
     AdminChanged(
-      name?: null,
+      name?: PromiseOrValue<BytesLike> | null,
       oldAdmin?: PromiseOrValue<string> | null,
       newAdmin?: PromiseOrValue<string> | null
     ): AdminChangedEventFilter;
+
+    "ExtraDataUpdated(bytes32,bytes,bytes)"(
+      name?: PromiseOrValue<BytesLike> | null,
+      oldExtraData?: PromiseOrValue<BytesLike> | null,
+      newExtraData?: PromiseOrValue<BytesLike> | null
+    ): ExtraDataUpdatedEventFilter;
+    ExtraDataUpdated(
+      name?: PromiseOrValue<BytesLike> | null,
+      oldExtraData?: PromiseOrValue<BytesLike> | null,
+      newExtraData?: PromiseOrValue<BytesLike> | null
+    ): ExtraDataUpdatedEventFilter;
 
     "NewRecord(bytes32,address,address,uint16,bytes32)"(
       name?: PromiseOrValue<BytesLike> | null,
@@ -365,6 +422,12 @@ export interface IContractRegistry extends BaseContract {
     changeRegisteredAdmin(
       name: PromiseOrValue<BytesLike>,
       newAdmin: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<BigNumber>;
+
+    editExtraData(
+      name: PromiseOrValue<BytesLike>,
+      newExtraData: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
@@ -405,6 +468,12 @@ export interface IContractRegistry extends BaseContract {
     changeRegisteredAdmin(
       name: PromiseOrValue<BytesLike>,
       newAdmin: PromiseOrValue<string>,
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<PopulatedTransaction>;
+
+    editExtraData(
+      name: PromiseOrValue<BytesLike>,
+      newExtraData: PromiseOrValue<BytesLike>,
       overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 

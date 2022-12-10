@@ -20,6 +20,7 @@ struct ContractRecord {
   address admin;
   uint16 version;
   bytes32 logicCodeHash;
+  bytes extraData;
   uint256 timestamp;
 }
 
@@ -52,7 +53,12 @@ interface IContractRegistry {
     bytes32 logicCodeHash
   );
   // should be emitted when a contract record changes it's registered admin
-  event AdminChanged(bytes32 name, address indexed oldAdmin, address indexed newAdmin);
+  event AdminChanged(bytes32 indexed name, address indexed oldAdmin, address indexed newAdmin);
+  event ExtraDataUpdated(
+    bytes32 indexed name,
+    bytes indexed oldExtraData,
+    bytes indexed newExtraData
+  );
 
   // =========
   // FUNCTIONS
@@ -101,6 +107,14 @@ interface IContractRegistry {
    * @param newAdmin Address of the new admin
    */
   function changeRegisteredAdmin(bytes32 name, address newAdmin) external;
+
+  /**
+   * @notice Edit / replaces a Contract Record's extraData field
+   * @param name ContractRecord's name
+   * @param newExtraData ContractRecord's new extraData field
+   * @dev it emits an ExtraDataUpdated event
+   */
+  function editExtraData(bytes32 name, bytes calldata newExtraData) external;
 
   /**
    * @notice Retreives the contract record by a given name and admin
