@@ -1,6 +1,6 @@
 {
   "name": "standard-contract-registry",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Contract that use the Transparent Upgradeable model (openzeppelin) to keep a registry of the current deployed contracts, their types and versions",
   "main": "index.js",
   "scripts": {
