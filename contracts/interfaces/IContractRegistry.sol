@@ -54,6 +54,7 @@ interface IContractRegistry {
   );
   // should be emitted when a contract record changes it's registered admin
   event AdminChanged(bytes32 indexed name, address indexed oldAdmin, address indexed newAdmin);
+  // should be emitted when a contract record updates it's extraData
   event ExtraDataUpdated(
     bytes32 indexed name,
     bytes indexed oldExtraData,

@@ -5,7 +5,12 @@ import { step } from "mocha-steps";
 import { isAddress } from "@ethersproject/address";
 import { Wallet } from "@ethersproject/wallet";
 import { keccak256 } from "@ethersproject/keccak256";
-import { formatBytes32String, toUtf8Bytes } from "@ethersproject/strings";
+import {
+  formatBytes32String,
+  parseBytes32String,
+  toUtf8Bytes,
+  toUtf8String,
+} from "@ethersproject/strings";
 import { JsonRpcProvider, Block } from "@ethersproject/providers";
 import { hexValue, Mnemonic } from "ethers/lib/utils";
 import { ContractReceipt } from "ethers";
@@ -213,6 +218,23 @@ describe("Contract Registry", () => {
           const blockTime = (await event.getBlock()).timestamp;
           console.log(
             `New Admin Changed: { Record Name: ${nameString}, Old Admin: ${oldAdmin}, New Admin: ${newAdmin}} at Block ${
+              event.blockNumber
+            } (${event.blockHash}) timestamp: ${new Date(
+              blockTime * 1000
+            ).toISOString()} (${blockTime})`
+          );
+        }
+      );
+      // ExtraDataUpdated
+      contractRegistry.on(
+        contractRegistry.filters.ExtraDataUpdated(),
+        async (name, oldExtraData, newExtraData, event) => {
+          const nameString = parseBytes32String(name);
+          const oldExtraDataString = toUtf8String(oldExtraData);
+          const newExtraDataString = toUtf8String(newExtraData);
+          const blockTime = (await event.getBlock()).timestamp;
+          console.log(
+            `ExtraData upgdated: { Record Name: ${nameString}, Old ExtraData: ${oldExtraDataString}, New ExtraData: ${newExtraDataString}} at Block ${
               event.blockNumber
             } (${event.blockHash}) timestamp: ${new Date(
               blockTime * 1000
@@ -573,6 +595,10 @@ describe("Contract Registry", () => {
           .editExtraData(EXAMPLE_STORAGE_NAME_HEXSTRING, toUtf8Bytes(data), GAS_OPT.max)
       ).wait();
       expect(lastReceipt).not.to.be.undefined;
+      // check if event is emitted correctly
+      await expect(await provider.getTransaction(lastReceipt.transactionHash))
+        .to.emit(contractRegistry, "ExtraDataUpdated")
+        .withArgs(EXAMPLE_STORAGE_NAME_HEXSTRING, "0x", hexValue(toUtf8Bytes(data)));
       // update block timestamp
       lastRegisteredAt = lastUpdatedAt = await getTimeStamp(lastReceipt.blockHash);
       lastReceipt = undefined;
