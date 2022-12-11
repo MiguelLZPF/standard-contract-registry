@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: BSD-3-Clause
 pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -37,12 +37,7 @@ contract ContractRegistry is IContractRegistry, Ownable, Trustable {
    * @param version (optional) [00.00] initial version of the contract
    * @param logicCodeHash the external bytecode or deployBytecode or off-chain bytecode
    */
-  constructor(
-    ICodeTrust initCodeTrust,
-    bytes32 name,
-    uint16 version,
-    bytes32 logicCodeHash
-  ) {
+  constructor(ICodeTrust initCodeTrust, bytes32 name, uint16 version, bytes32 logicCodeHash) {
     // set contract to ask for trusted code
     _codeTrust = initCodeTrust;
     if (name == bytes32(0)) {
@@ -115,6 +110,23 @@ contract ContractRegistry is IContractRegistry, Ownable, Trustable {
     // remove latest version reference
     delete contractRecords[sender][name][oldMetadata.latestVersion[name]];
     emit AdminChanged(name, sender, newAdmin);
+  }
+
+  function editExtraData(bytes32 name, bytes memory newExtraData) external {
+    address sender = _msgSender();
+    // Parameter checks
+    // -- keccak256(name) is used as Record ID
+    require(name != bytes32(0), "Record name needed");
+    // Get sender's metadata
+    Metadata storage senderMetadata = metadata[sender];
+    // Get record's latestVersion (actualRecord)
+    ContractRecord storage actualRecord = contractRecords[sender][name][
+      senderMetadata.latestVersion[name]
+    ];
+    require(actualRecord.timestamp != 0, "Not registered, use register");
+    // All OK
+    emit ExtraDataUpdated(actualRecord.name, actualRecord.extraData, newExtraData);
+    actualRecord.extraData = newExtraData;
   }
 
   function getRecord(

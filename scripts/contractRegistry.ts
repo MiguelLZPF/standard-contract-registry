@@ -1,6 +1,6 @@
 import { Provider } from "@ethersproject/abstract-provider";
 import { expect } from "chai";
-import { BigNumberish } from "ethers";
+import { BigNumberish, BytesLike } from "ethers";
 import { ethers } from "hardhat";
 import { ghre } from "./utils";
 import * as CONTRACT_REGISTRY_ARTIFACT from "artifacts/contracts/ContractRegistry.sol/ContractRegistry.json";
@@ -14,7 +14,8 @@ export interface IExpectedRecord {
   logic?: string;
   admin?: string;
   version?: BigNumberish;
-  logicCodeHash?: string; // OPT def: 0x00...00
+  logicCodeHash?: BytesLike; // OPT def: 0x00...00
+  extraData?: BytesLike; // bytes || byte[]
   timestamp?: number;
 }
 
@@ -67,6 +68,7 @@ export const checkRecord = async (
   expected.logicCodeHash
     ? expect(result.record.logicCodeHash).to.equal(expected.logicCodeHash)
     : undefined;
+  expected.extraData ? expect(result.record.extraData).to.equal(expected.extraData) : undefined;
   expected.timestamp ? expect(result.record.timestamp).to.equal(expected.timestamp) : undefined;
 };
 

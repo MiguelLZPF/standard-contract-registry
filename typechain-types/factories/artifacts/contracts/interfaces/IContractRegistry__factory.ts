@@ -14,7 +14,7 @@ const _abi = [
     anonymous: false,
     inputs: [
       {
-        indexed: false,
+        indexed: true,
         internalType: "bytes32",
         name: "name",
         type: "bytes32",
@@ -33,6 +33,31 @@ const _abi = [
       },
     ],
     name: "AdminChanged",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "name",
+        type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "bytes",
+        name: "oldExtraData",
+        type: "bytes",
+      },
+      {
+        indexed: true,
+        internalType: "bytes",
+        name: "newExtraData",
+        type: "bytes",
+      },
+    ],
+    name: "ExtraDataUpdated",
     type: "event",
   },
   {
@@ -86,6 +111,24 @@ const _abi = [
       },
     ],
     name: "changeRegisteredAdmin",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "name",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes",
+        name: "newExtraData",
+        type: "bytes",
+      },
+    ],
+    name: "editExtraData",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -159,6 +202,11 @@ const _abi = [
             internalType: "bytes32",
             name: "logicCodeHash",
             type: "bytes32",
+          },
+          {
+            internalType: "bytes",
+            name: "extraData",
+            type: "bytes",
           },
           {
             internalType: "uint256",
