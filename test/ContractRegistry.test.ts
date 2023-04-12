@@ -15,10 +15,9 @@ import { JsonRpcProvider, Block } from "@ethersproject/providers";
 import { hexValue, Mnemonic } from "ethers/lib/utils";
 import { ContractReceipt } from "ethers";
 import { randomBytes } from "crypto";
-import { CONTRACT, GAS_OPT, KEYSTORE, TEST } from "configuration";
+import { CONTRACTS, GAS_OPT, KEYSTORE, TEST } from "configuration";
 import { ADDR_ZERO, delay, getTimeStamp, setGlobalHRE } from "scripts/utils";
-import { generateWalletBatch } from "scripts/wallets";
-import { INetwork } from "models/Deploy";
+import { generateWallets } from "scripts/wallets";
 import {
   IExpectedRecord,
   checkRecord,
@@ -42,6 +41,7 @@ import {
   ICodeTrust,
   IContractRegistry,
 } from "typechain-types";
+import { INetwork } from "models/Configuration";
 
 // Generic Constants
 let ethers: HardhatRuntimeEnvironment["ethers"];
@@ -107,11 +107,11 @@ let lastRegisteredAt: number, lastUpdatedAt: number;
 describe("Contract Registry", () => {
   before("Initialize test environment and const/var", async () => {
     // set global HardhatRuntimeEnvironment to use the same provider in scripts
-    ({ gEthers: ethers, gProvider: provider, gCurrentNetwork: network } = await setGlobalHRE(hre));
+    ({ gProvider: provider, gNetwork: network } = await setGlobalHRE(hre));
     lastBlock = await provider.getBlock("latest");
     console.log(`Connected to network: ${network.name} (latest block: ${lastBlock.number})`);
     // Generate TEST.accountNumber wallets
-    accounts = await generateWalletBatch(
+    accounts = await generateWallets(
       undefined,
       undefined,
       TEST.accountNumber,
@@ -129,11 +129,11 @@ describe("Contract Registry", () => {
       users[u - 1] = accounts[u];
     }
     // Contract names as hexadecimal string with fixed length
-    CODETRUST_NAME_HEXSTRING = formatBytes32String(CONTRACT.codeTrust.name);
-    CONTRACT_REGISTRY_NAME_HEXSTRING = formatBytes32String(CONTRACT.contractRegistry.name);
-    EXAMPLE_BALLOT_NAME_HEXSTRING = formatBytes32String(CONTRACT.exampleBallot.name);
-    EXAMPLE_OWNER_NAME_HEXSTRING = formatBytes32String(CONTRACT.exampleOwner.name);
-    EXAMPLE_STORAGE_NAME_HEXSTRING = formatBytes32String(CONTRACT.exampleStorage.name);
+    CODETRUST_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("CodeTrust").name);
+    CONTRACT_REGISTRY_NAME_HEXSTRING = formatBytes32String(CONTRACTS.contractRegistry.name);
+    EXAMPLE_BALLOT_NAME_HEXSTRING = formatBytes32String(CONTRACTS.exampleBallot.name);
+    EXAMPLE_OWNER_NAME_HEXSTRING = formatBytes32String(CONTRACTS.exampleOwner.name);
+    EXAMPLE_STORAGE_NAME_HEXSTRING = formatBytes32String(CONTRACTS.exampleStorage.name);
     // Get all factories now
     codeTrustFactory = ethers.getContractFactoryFromArtifact(
       CODETRUST_ARTIFACT,

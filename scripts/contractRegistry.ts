@@ -1,9 +1,7 @@
 import { Provider } from "@ethersproject/abstract-provider";
 import { expect } from "chai";
 import { BigNumberish, BytesLike } from "ethers";
-import { ethers } from "hardhat";
-import { ghre } from "./utils";
-import * as CONTRACT_REGISTRY_ARTIFACT from "artifacts/contracts/ContractRegistry.sol/ContractRegistry.json";
+import { getContractInstance, ghre } from "./utils";
 import { IContractRegistry } from "typechain-types";
 import { ContractRecordStructOutput } from "typechain-types/artifacts/contracts/interfaces/IContractRegistry";
 
@@ -39,10 +37,11 @@ export const checkRecord = async (
   // if is an address create contract
   contractRegistry =
     typeof contractRegistry == "string"
-      ? ((await ethers.getContractAtFromArtifact(
-          CONTRACT_REGISTRY_ARTIFACT,
+      ? ((await getContractInstance(
+          "ContractRegistry",
+          undefined,
           contractRegistry
-        )) as IContractRegistry) //IContractRegistry__factory.connect(contractRegistry, provider)
+        )) as IContractRegistry)
       : contractRegistry;
 
   // Get record by name or proxy address
