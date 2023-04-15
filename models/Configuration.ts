@@ -9,6 +9,10 @@ export const CONTRACT_NAMES = [
   "ContractRegistry",
   "ContractDeployer",
   "UpgradeableDeployer",
+  "ExampleOwner",
+  "ExampleOwnerV2",
+  "ExampleStorage",
+  "ExampleBallot",
 ] as const;
 type UnionFromTuple<T extends readonly any[]> = T[number];
 export type ContractName = UnionFromTuple<typeof CONTRACT_OZ_NAMES | typeof CONTRACT_NAMES>;

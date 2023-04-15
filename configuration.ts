@@ -192,6 +192,54 @@ export const CONTRACTS = new Map<ContractName, IContract>([
       ]),
     },
   ],
+  [
+    CONTRACT_NAMES[5],
+    {
+      name: CONTRACT_NAMES[5],
+      artifact: `artifacts/contracts/${CONTRACT_NAMES[5]}.sol/${CONTRACT_NAMES[5]}.json`,
+      address: new Map([
+        ["hardhat", ""],
+        ["ganache", ""],
+        ["mainTest", ""],
+      ]),
+    },
+  ],
+  [
+    CONTRACT_NAMES[6],
+    {
+      name: CONTRACT_NAMES[6],
+      artifact: `artifacts/contracts/${CONTRACT_NAMES[6]}.sol/${CONTRACT_NAMES[6]}.json`,
+      address: new Map([
+        ["hardhat", ""],
+        ["ganache", ""],
+        ["mainTest", ""],
+      ]),
+    },
+  ],
+  [
+    CONTRACT_NAMES[7],
+    {
+      name: CONTRACT_NAMES[7],
+      artifact: `artifacts/contracts/${CONTRACT_NAMES[7]}.sol/${CONTRACT_NAMES[7]}.json`,
+      address: new Map([
+        ["hardhat", ""],
+        ["ganache", ""],
+        ["mainTest", ""],
+      ]),
+    },
+  ],
+  [
+    CONTRACT_NAMES[8],
+    {
+      name: CONTRACT_NAMES[8],
+      artifact: `artifacts/contracts/${CONTRACT_NAMES[8]}.sol/${CONTRACT_NAMES[8]}.json`,
+      address: new Map([
+        ["hardhat", ""],
+        ["ganache", ""],
+        ["mainTest", ""],
+      ]),
+    },
+  ],
 ]);
 
 export const TEST = {

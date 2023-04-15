@@ -24,11 +24,6 @@ import {
   versionDotToNum,
   versionNumToDot,
 } from "scripts/contractRegistry";
-import * as CODETRUST_ARTIFACT from "node_modules/decentralized-code-trust/artifacts/contracts/CodeTrust.sol/CodeTrust.json";
-import * as CONTRACT_REGISTRY_ARTIFACT from "artifacts/contracts/ContractRegistry.sol/ContractRegistry.json";
-import * as STORAGE_ARTIFACT from "artifacts/contracts/Example_Storage.sol/ExampleStorage.json";
-import * as OWNER_ARTIFACT from "artifacts/contracts/Example_Owner.sol/ExampleOwner.json";
-import * as BALLOT_ARTIFACT from "artifacts/contracts/Example_Ballot.sol/ExampleBallot.json";
 import {
   CodeTrust__factory,
   ContractRegistry__factory,
@@ -42,6 +37,7 @@ import {
   IContractRegistry,
 } from "typechain-types";
 import { INetwork } from "models/Configuration";
+import { readFileSync } from "fs";
 
 // Generic Constants
 let ethers: HardhatRuntimeEnvironment["ethers"];
@@ -49,6 +45,16 @@ let provider: JsonRpcProvider;
 let network: INetwork;
 
 // Specific Constants
+
+const CODETRUST_ARTIFACT = JSON.parse(readFileSync(CONTRACTS.get("CodeTrust")!.artifact, "utf-8"));
+const CONTRACT_REGISTRY_ARTIFACT = JSON.parse(
+  readFileSync(CONTRACTS.get("ContractRegistry")!.artifact, "utf-8")
+);
+const STORAGE_ARTIFACT = JSON.parse(
+  readFileSync(CONTRACTS.get("ExampleStorage")!.artifact, "utf-8")
+);
+const OWNER_ARTIFACT = JSON.parse(readFileSync(CONTRACTS.get("ExampleOwner")!.artifact, "utf-8"));
+const BALLOT_ARTIFACT = JSON.parse(readFileSync(CONTRACTS.get("ExampleBallot")!.artifact, "utf-8"));
 const CODETRUST_DEP_CODE = CODETRUST_ARTIFACT.deployedBytecode;
 const REGISTRY_DEP_CODE = CONTRACT_REGISTRY_ARTIFACT.deployedBytecode;
 const STORAGE_DEP_CODE = STORAGE_ARTIFACT.deployedBytecode;
@@ -129,11 +135,11 @@ describe("Contract Registry", () => {
       users[u - 1] = accounts[u];
     }
     // Contract names as hexadecimal string with fixed length
-    CODETRUST_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("CodeTrust").name);
-    CONTRACT_REGISTRY_NAME_HEXSTRING = formatBytes32String(CONTRACTS.contractRegistry.name);
-    EXAMPLE_BALLOT_NAME_HEXSTRING = formatBytes32String(CONTRACTS.exampleBallot.name);
-    EXAMPLE_OWNER_NAME_HEXSTRING = formatBytes32String(CONTRACTS.exampleOwner.name);
-    EXAMPLE_STORAGE_NAME_HEXSTRING = formatBytes32String(CONTRACTS.exampleStorage.name);
+    CODETRUST_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("CodeTrust")!.name);
+    CONTRACT_REGISTRY_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("ContractRegistry")!.name);
+    EXAMPLE_BALLOT_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("ExampleBallot")!.name);
+    EXAMPLE_OWNER_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("ExampleOwner")!.name);
+    EXAMPLE_STORAGE_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("ExampleStorage")!.name);
     // Get all factories now
     codeTrustFactory = ethers.getContractFactoryFromArtifact(
       CODETRUST_ARTIFACT,

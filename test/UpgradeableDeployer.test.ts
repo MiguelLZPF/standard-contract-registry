@@ -9,10 +9,9 @@ import { formatBytes32String } from "@ethersproject/strings";
 import { JsonRpcProvider, Block } from "@ethersproject/providers";
 import { ContractReceipt } from "ethers";
 import { Mnemonic } from "ethers/lib/utils";
-import { CONTRACT, GAS_OPT, KEYSTORE, TEST } from "configuration";
+import { CONTRACTS, GAS_OPT, KEYSTORE, TEST } from "configuration";
 import { ADDR_ZERO, delay, getTimeStamp, setGlobalHRE } from "scripts/utils";
-import { generateWalletBatch } from "scripts/wallets";
-import { INetwork } from "models/Deploy";
+import { generateWallets } from "scripts/wallets";
 import {
   IExpectedRecord,
   checkRecord,
@@ -35,6 +34,7 @@ import {
   ProxyAdmin,
   UpgradeableDeployer__factory,
 } from "typechain-types";
+import { INetwork } from "models/Configuration";
 
 // Generic Constants
 let ethers: HardhatRuntimeEnvironment["ethers"];
@@ -85,11 +85,11 @@ let lastRegisteredAt: number, lastUpdatedAt: number;
 describe("Upgradeable Deployer", () => {
   before("Initialize test environment and const/var", async () => {
     // set global HardhatRuntimeEnvironment to use the same provider in scripts
-    ({ gEthers: ethers, gProvider: provider, gCurrentNetwork: network } = await setGlobalHRE(hre));
+    ({ gProvider: provider, gNetwork: network } = await setGlobalHRE(hre));
     lastBlock = await provider.getBlock("latest");
     console.log(`Connected to network: ${network.name} (latest block: ${lastBlock.number})`);
     // Generate TEST.accountNumber wallets
-    accounts = await generateWalletBatch(
+    accounts = await generateWallets(
       undefined,
       undefined,
       TEST.accountNumber,
@@ -106,11 +106,13 @@ describe("Upgradeable Deployer", () => {
       users[u - 1] = accounts[u];
     }
     // Contract names as hexadecimal string with fixed length
-    CODETRUST_NAME_HEXSTRING = formatBytes32String(CONTRACT.codeTrust.name);
-    CONTRACT_REGISTRY_NAME_HEXSTRING = formatBytes32String(CONTRACT.contractRegistry.name);
-    UPGRADEABLE_DEPLOYER_NAME_HEXSTRING = formatBytes32String(CONTRACT.upgradeableDeployer.name);
-    EXAMPLE_OWNER_NAME_HEXSTRING = formatBytes32String(CONTRACT.exampleOwner.name);
-    EXAMPLE_OWNERV2_NAME_HEXSTRING = formatBytes32String(CONTRACT.exampleOwner.name);
+    CODETRUST_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("CodeTrust")!.name);
+    CONTRACT_REGISTRY_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("ContractRegistry")!.name);
+    UPGRADEABLE_DEPLOYER_NAME_HEXSTRING = formatBytes32String(
+      CONTRACTS.get("UpgradeableDeployer")!.name
+    );
+    EXAMPLE_OWNER_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("ExampleOwner")!.name);
+    EXAMPLE_OWNERV2_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("ExampleOwner")!.name);
     // Get all factories now
     codeTrustFactory = ethers.getContractFactoryFromArtifact(
       CODETRUST_ARTIFACT,
