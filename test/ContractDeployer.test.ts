@@ -9,20 +9,14 @@ import { formatBytes32String } from "@ethersproject/strings";
 import { JsonRpcProvider, Block } from "@ethersproject/providers";
 import { ContractReceipt } from "ethers";
 import { Mnemonic } from "ethers/lib/utils";
-import { CONTRACT, GAS_OPT, KEYSTORE, TEST } from "configuration";
-import { delay, getTimeStamp, setGlobalHRE } from "scripts/utils";
-import { generateWalletBatch } from "scripts/wallets";
-import { INetwork } from "models/Deploy";
+import { CONTRACTS, GAS_OPT, KEYSTORE, TEST } from "configuration";
+import { ADDR_ZERO, delay, getTimeStamp, setGlobalHRE } from "scripts/utils";
 import {
   IExpectedRecord,
   checkRecord,
   versionDotToNum,
   versionNumToDot,
 } from "scripts/contractRegistry";
-import * as CODETRUST_ARTIFACT from "node_modules/decentralized-code-trust/artifacts/contracts/CodeTrust.sol/CodeTrust.json";
-import * as CONTRACT_REGISTRY_ARTIFACT from "artifacts/contracts/ContractRegistry.sol/ContractRegistry.json";
-import * as CONTRACT_DEPLOYER_ARTIFACT from "artifacts/contracts/ContractDeployer.sol/ContractDeployer.json";
-import * as OWNER_ARTIFACT from "artifacts/contracts/Example_Owner.sol/ExampleOwner.json";
 import {
   CodeTrust__factory,
   ContractDeployer__factory,
@@ -32,6 +26,10 @@ import {
   IContractDeployer,
   IContractRegistry,
 } from "typechain-types";
+import { INetwork } from "models/Configuration";
+import { readFileSync } from "fs";
+import { generateWallets } from "scripts/wallets";
+import { deploy } from "scripts/deploy";
 
 // Generic Constants
 let ethers: HardhatRuntimeEnvironment["ethers"];
@@ -39,6 +37,16 @@ let provider: JsonRpcProvider;
 let network: INetwork;
 
 // Specific Constants
+const CODETRUST_ARTIFACT = JSON.parse(readFileSync(CONTRACTS.get("CodeTrust")!.artifact, "utf-8"));
+const CONTRACT_REGISTRY_ARTIFACT = JSON.parse(
+  readFileSync(CONTRACTS.get("ContractRegistry")!.artifact, "utf-8")
+);
+const CONTRACT_DEPLOYER_ARTIFACT = JSON.parse(
+  readFileSync(CONTRACTS.get("ContractDeployer")!.artifact, "utf-8")
+);
+const OWNER_ARTIFACT = JSON.parse(
+  readFileSync(CONTRACTS.get("ExampleOwner")!.artifact, "utf-8")
+);
 const CODETRUST_DEP_CODE = CODETRUST_ARTIFACT.deployedBytecode;
 const REGISTRY_DEP_CODE = CONTRACT_REGISTRY_ARTIFACT.deployedBytecode;
 const DEPLOYER_DEP_CODE = CONTRACT_DEPLOYER_ARTIFACT.deployedBytecode;
@@ -80,11 +88,11 @@ let lastRegisteredAt: number, lastUpdatedAt: number;
 describe("Contract Deployer", () => {
   before("Initialize test environment and const/var", async () => {
     // set global HardhatRuntimeEnvironment to use the same provider in scripts
-    ({ gEthers: ethers, gProvider: provider, gCurrentNetwork: network } = await setGlobalHRE(hre));
+    ({ gProvider: provider, gNetwork: network } = await setGlobalHRE(hre));
     lastBlock = await provider.getBlock("latest");
     console.log(`Connected to network: ${network.name} (latest block: ${lastBlock.number})`);
     // Generate TEST.accountNumber wallets
-    accounts = await generateWalletBatch(
+    accounts = await generateWallets(
       undefined,
       undefined,
       TEST.accountNumber,
@@ -101,10 +109,10 @@ describe("Contract Deployer", () => {
       users[u - 1] = accounts[u];
     }
     // Contract names as hexadecimal string with fixed length
-    CODETRUST_NAME_HEXSTRING = formatBytes32String(CONTRACT.codeTrust.name);
-    CONTRACT_REGISTRY_NAME_HEXSTRING = formatBytes32String(CONTRACT.contractRegistry.name);
-    CONTRACT_DEPLOYER_NAME_HEXSTRING = formatBytes32String(CONTRACT.contractDeployer.name);
-    EXAMPLE_OWNER_NAME_HEXSTRING = formatBytes32String(CONTRACT.exampleOwner.name);
+    CODETRUST_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("CodeTrust")!.name);
+    CONTRACT_REGISTRY_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("ContractRegistry")!.name);
+    CONTRACT_DEPLOYER_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("ContractDeployer")!.name);
+    EXAMPLE_OWNER_NAME_HEXSTRING = formatBytes32String(CONTRACTS.get("ExampleOwner")!.name);
     // Get all factories now
     codeTrustFactory = ethers.getContractFactoryFromArtifact(
       CODETRUST_ARTIFACT,
@@ -127,10 +135,19 @@ describe("Contract Deployer", () => {
     });
 
     step("Should deploy CodeTrust", async () => {
-      codeTrust = await (await (await codeTrustFactory).deploy(GAS_OPT.max)).deployed();
-      lastReceipt = await codeTrust.deployTransaction.wait();
+      const deployResult = await deploy(
+        "CodeTrust",
+        admin,
+        undefined,
+        undefined,
+        GAS_OPT.max,
+        false
+      );
+      codeTrust = deployResult.contractInstance as ICodeTrust;
       expect(isAddress(codeTrust.address)).to.be.true;
+      expect(codeTrust.address).not.to.equal(ADDR_ZERO);
       console.log("CodeTrust contract deployed at: ", codeTrust.address);
+      lastReceipt = await provider.getTransactionReceipt(deployResult.deployment.deployTxHash!);
       expect(lastReceipt).not.to.be.undefined;
       lastRegisteredAt = lastUpdatedAt = await getTimeStamp(lastReceipt.blockHash);
       lastReceipt = undefined;
