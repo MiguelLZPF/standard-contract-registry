@@ -45,7 +45,6 @@ let provider: JsonRpcProvider;
 let network: INetwork;
 
 // Specific Constants
-
 const CODETRUST_ARTIFACT = JSON.parse(readFileSync(CONTRACTS.get("CodeTrust")!.artifact, "utf-8"));
 const CONTRACT_REGISTRY_ARTIFACT = JSON.parse(
   readFileSync(CONTRACTS.get("ContractRegistry")!.artifact, "utf-8")
