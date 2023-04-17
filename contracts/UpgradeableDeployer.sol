@@ -73,7 +73,7 @@ contract UpgradeableDeployer is IUpgradeableDeployer, ProxyAdmin {
     // get proxy by record's name
     (, ContractRecord memory record) = registry.getRecord(name, _msgSender(), 10000);
     address proxyAddr = record.proxy;
-    TransparentUpgradeableProxy proxy = TransparentUpgradeableProxy(payable(proxyAddr));
+    ITransparentUpgradeableProxy proxy = ITransparentUpgradeableProxy(payable(proxyAddr));
     // check if salt is empty and generate a random salt
     if (salt == bytes32(0)) {
       salt = keccak256(abi.encodePacked(bytecode, proxyAddr.code, proxyAddr, block.timestamp));

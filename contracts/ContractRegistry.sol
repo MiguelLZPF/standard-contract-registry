@@ -2,7 +2,6 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Create2.sol";
 import "./interfaces/IContractRegistry.sol";
 import "decentralized-code-trust/contracts/Trustable.sol";
 
@@ -16,7 +15,7 @@ contract ContractRegistry is IContractRegistry, Ownable, Trustable {
   // ======
   // CONSTANTS
   uint16 private constant MAX_VERSION = 9999;
-  bytes32 private constant REGISTRY_NAME = bytes32("ContractRegistry");
+  // bytes32 private constant REGISTRY_NAME = bytes32("ContractRegistry");
 
   // ======
   // VARIABLES
@@ -30,20 +29,12 @@ contract ContractRegistry is IContractRegistry, Ownable, Trustable {
   // =========
   // FUNCTIONS
   /**
-   * @notice Initializes the contract and adds intself as first record
-   * @dev The logic address in not needed because is the address(this)
+   * @notice Initializes the contract
    * @param initCodeTrust the initial code trust to be used
-   * @param name (optional) [ContractRegistry] name to identify this contract
-   * @param version (optional) [00.00] initial version of the contract
-   * @param logicCodeHash the external bytecode or deployBytecode or off-chain bytecode
    */
-  constructor(ICodeTrust initCodeTrust, bytes32 name, uint16 version, bytes32 logicCodeHash) {
+  constructor(ICodeTrust initCodeTrust) {
     // set contract to ask for trusted code
     _codeTrust = initCodeTrust;
-    if (name == bytes32(0)) {
-      name = REGISTRY_NAME;
-    }
-    _register(name, address(this), address(this), version, logicCodeHash, _msgSender());
   }
 
   function register(

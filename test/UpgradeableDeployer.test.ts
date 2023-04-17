@@ -18,12 +18,6 @@ import {
   versionDotToNum,
   versionNumToDot,
 } from "scripts/contractRegistry";
-import * as CODETRUST_ARTIFACT from "node_modules/decentralized-code-trust/artifacts/contracts/CodeTrust.sol/CodeTrust.json";
-import * as CONTRACT_REGISTRY_ARTIFACT from "artifacts/contracts/ContractRegistry.sol/ContractRegistry.json";
-import * as UPGRADEABLE_DEPLOYER_ARTIFACT from "artifacts/contracts/UpgradeableDeployer.sol/UpgradeableDeployer.json";
-import * as OWNER_ARTIFACT from "artifacts/contracts/Example_Owner.sol/ExampleOwner.json";
-import * as OWNERV2_ARTIFACT from "artifacts/contracts/Example_Owner_V2.sol/ExampleOwnerV2.json";
-import * as PROXY_ADMIN_ARTIFACT from "@openzeppelin/contracts/build/contracts/ProxyAdmin.json";
 import {
   CodeTrust__factory,
   ContractRegistry__factory,
@@ -35,6 +29,8 @@ import {
   UpgradeableDeployer__factory,
 } from "typechain-types";
 import { INetwork } from "models/Configuration";
+import { readFileSync } from "fs";
+import { deploy } from "scripts/deploy";
 
 // Generic Constants
 let ethers: HardhatRuntimeEnvironment["ethers"];
@@ -42,6 +38,20 @@ let provider: JsonRpcProvider;
 let network: INetwork;
 
 // Specific Constants
+const PROXY_ADMIN_ARTIFACT = JSON.parse(
+  readFileSync(CONTRACTS.get("ProxyAdmin")!.artifact, "utf-8")
+);
+const CODETRUST_ARTIFACT = JSON.parse(readFileSync(CONTRACTS.get("CodeTrust")!.artifact, "utf-8"));
+const CONTRACT_REGISTRY_ARTIFACT = JSON.parse(
+  readFileSync(CONTRACTS.get("ContractRegistry")!.artifact, "utf-8")
+);
+const UPGRADEABLE_DEPLOYER_ARTIFACT = JSON.parse(
+  readFileSync(CONTRACTS.get("UpgradeableDeployer")!.artifact, "utf-8")
+);
+const OWNER_ARTIFACT = JSON.parse(readFileSync(CONTRACTS.get("ExampleOwner")!.artifact, "utf-8"));
+const OWNERV2_ARTIFACT = JSON.parse(
+  readFileSync(CONTRACTS.get("ExampleOwnerV2")!.artifact, "utf-8")
+);
 const CODETRUST_DEP_CODE = CODETRUST_ARTIFACT.deployedBytecode;
 const REGISTRY_DEP_CODE = CONTRACT_REGISTRY_ARTIFACT.deployedBytecode;
 const UPGRADEABLE_DEP_CODE = UPGRADEABLE_DEPLOYER_ARTIFACT.deployedBytecode;
@@ -86,6 +96,7 @@ describe("Upgradeable Deployer", () => {
   before("Initialize test environment and const/var", async () => {
     // set global HardhatRuntimeEnvironment to use the same provider in scripts
     ({ gProvider: provider, gNetwork: network } = await setGlobalHRE(hre));
+    ethers = hre.ethers;
     lastBlock = await provider.getBlock("latest");
     console.log(`Connected to network: ${network.name} (latest block: ${lastBlock.number})`);
     // Generate TEST.accountNumber wallets
@@ -149,23 +160,49 @@ describe("Upgradeable Deployer", () => {
     });
 
     step("Should deploy ContractRegistry", async () => {
-      contractRegistry = await (
-        await (
-          await contractRegistryFactory
-        ).deploy(
-          codeTrust.address,
-          NAME_HEXSTRING_ZERO,
-          0,
-          keccak256(REGISTRY_DEP_CODE),
-          GAS_OPT.max
-        )
-      ).deployed();
-      lastReceipt = await contractRegistry.deployTransaction.wait();
+      const deployResult = await deploy(
+        "ContractRegistry",
+        admin,
+        [codeTrust.address],
+        undefined,
+        GAS_OPT.max,
+        false
+      );
+      contractRegistry = deployResult.contractInstance as IContractRegistry;
+      lastReceipt = await provider.getTransactionReceipt(deployResult.deployment.deployTxHash!);
       expect(isAddress(contractRegistry.address)).to.be.true;
       console.log("Contract Registry deployed at: ", contractRegistry.address);
       expect(lastReceipt).not.to.be.undefined;
       lastRegisteredAt = lastUpdatedAt = await getTimeStamp(lastReceipt.blockHash);
       lastReceipt = undefined;
+    });
+
+    step("Should register itself", async () => {
+      lastReceipt = await (
+        await contractRegistry.register(
+          CONTRACT_REGISTRY_NAME_HEXSTRING,
+          contractRegistry.address,
+          contractRegistry.address,
+          0,
+          keccak256(REGISTRY_DEP_CODE),
+          admin.address,
+          GAS_OPT.max
+        )
+      ).wait();
+      expect(lastReceipt).not.to.be.undefined;
+      const events = await contractRegistry.queryFilter(
+        contractRegistry.filters.NewRecord(
+          CONTRACT_REGISTRY_NAME_HEXSTRING,
+          contractRegistry.address,
+          undefined,
+          0,
+          undefined
+        ),
+        lastReceipt.blockNumber,
+        lastReceipt.blockNumber
+      );
+      expect(events.length).to.equal(1);
+      lastRegisteredAt = lastUpdatedAt = await getTimeStamp(lastReceipt.blockHash);
     });
 
     it("Should subscribe ContractRegistry EVENTS", async () => {

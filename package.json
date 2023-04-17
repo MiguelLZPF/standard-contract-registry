@@ -1,6 +1,6 @@
 {
   "name": "standard-contract-registry",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "Contract that use the Transparent Upgradeable model (openzeppelin) to keep a registry of the current deployed contracts, their types and versions",
   "main": "index.js",
   "scripts": {
@@ -33,13 +33,13 @@
   "homepage": "https://github.com/MiguelLZPF/standard-contract-registry",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.2",
-    "@openzeppelin/contracts": "^4.8.2",
+    "@openzeppelin/contracts": "^4.8.3",
     "@types/chai": "^4.3.4",
     "@types/node": "^18.15.11",
     "chai": "^4.3.7",
     "mocha-steps": "^1.3.0",
-    "ganache": "^7.7.7",
-    "hardhat": "^2.13.0",
+    "ganache": "^7.8.0",
+    "hardhat": "^2.14.0",
     "hardhat-contract-sizer": "^2.8.0",
     "json5": "^2.2.3",
     "prettier": "^2.8.7",
