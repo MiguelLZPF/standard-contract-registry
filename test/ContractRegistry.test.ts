@@ -38,6 +38,7 @@ import {
 } from "typechain-types";
 import { INetwork } from "models/Configuration";
 import { readFileSync } from "fs";
+import { deploy } from "scripts/deploy";
 
 // Generic Constants
 let ethers: HardhatRuntimeEnvironment["ethers"];
@@ -113,6 +114,7 @@ describe("Contract Registry", () => {
   before("Initialize test environment and const/var", async () => {
     // set global HardhatRuntimeEnvironment to use the same provider in scripts
     ({ gProvider: provider, gNetwork: network } = await setGlobalHRE(hre));
+    ethers = hre.ethers;
     lastBlock = await provider.getBlock("latest");
     console.log(`Connected to network: ${network.name} (latest block: ${lastBlock.number})`);
     // Generate TEST.accountNumber wallets
@@ -179,18 +181,16 @@ describe("Contract Registry", () => {
     });
 
     step("Should deploy ContractRegistry", async () => {
-      contractRegistry = await (
-        await (
-          await contractRegistryFactory
-        ).deploy(
-          codeTrust.address,
-          NAME_HEXSTRING_ZERO,
-          0,
-          keccak256(REGISTRY_DEP_CODE),
-          GAS_OPT.max
-        )
-      ).deployed();
-      lastReceipt = await contractRegistry.deployTransaction.wait();
+      const deployResult = await deploy(
+        "ContractRegistry",
+        admin,
+        [codeTrust.address],
+        undefined,
+        GAS_OPT.max,
+        false
+      );
+      contractRegistry = deployResult.contractInstance as IContractRegistry;
+      lastReceipt = await provider.getTransactionReceipt(deployResult.deployment.deployTxHash!);
       expect(isAddress(contractRegistry.address)).to.be.true;
       console.log("Contract Registry deployed at: ", contractRegistry.address);
       expect(lastReceipt).not.to.be.undefined;
@@ -247,6 +247,34 @@ describe("Contract Registry", () => {
           );
         }
       );
+    });
+
+    step("Should register itself", async () => {
+      lastReceipt = await (
+        await contractRegistry.register(
+          CONTRACT_REGISTRY_NAME_HEXSTRING,
+          contractRegistry.address,
+          contractRegistry.address,
+          0,
+          keccak256(REGISTRY_DEP_CODE),
+          admin.address,
+          GAS_OPT.max
+        )
+      ).wait();
+      expect(lastReceipt).not.to.be.undefined;
+      const events = await contractRegistry.queryFilter(
+        contractRegistry.filters.NewRecord(
+          CONTRACT_REGISTRY_NAME_HEXSTRING,
+          contractRegistry.address,
+          undefined,
+          0,
+          undefined
+        ),
+        lastReceipt.blockNumber,
+        lastReceipt.blockNumber
+      );
+      expect(events.length).to.equal(1);
+      lastRegisteredAt = lastUpdatedAt = await getTimeStamp(lastReceipt.blockHash);
     });
 
     step("Should check if ContractRegistry is registered", async () => {
