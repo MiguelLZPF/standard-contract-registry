@@ -1,9 +1,9 @@
 //SPDX-License-Identifier: BSD-3-Clause
 pragma solidity >=0.8.0 <0.9.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IContractRegistry.sol";
-import "decentralized-code-trust/contracts/Trustable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IContractRegisty } from "./interfaces/IContractRegistry.sol";
+import { Trustable } from "decentralized-code-trust/contracts/Trustable.sol";
 
 /**
  * @title Contract Registry
